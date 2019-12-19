@@ -1,18 +1,24 @@
-# fable README
-This is the README for your extension "fable". After writing up a brief description, we recommend including the following sections.
+# AESOP README
+Aesop is a project currently under development.
 
 ## Features
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
+<!-- Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file. -->
 
 > Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+Aesop uses Fable, a simple, React-like helper library, to generate its main and add-ons UI. You should not need to install React if you are not building your app with React.
+
+Though Aesop's declaration files are written in TypeScript, you should not need any additional transpilers than those included with your installation of VSCode.
+
+Aesop depends on:
+  - babel
+  - tsc-loader
+  - express
+
+<!-- 
+If you have any requirements or dependencies, add a section describing those and how to install and configure them. -->
 
 ## Extension Settings
 Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
@@ -22,7 +28,7 @@ This extension contributes the following settings:
 * `myExtension.thing`: set to `blah` to do something
 
 ## Release Notes
-Aesop is a project currently under development by Aesop. Please check back in late January for the 1.0 launch.
+Aesop is a project currently under development by Async. Please check back in late January for the 1.0 launch.
 
 ### 0.0.1
 

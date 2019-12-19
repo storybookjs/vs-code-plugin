@@ -1,19 +1,21 @@
 {
-	"name": "fable",
-	"displayName": "Fable",
-	"description": "An IDE-native suite to implement Storybook visual TDD functionality.",
+	"name": "aesop",
+	"displayName": "Aesop",
+	"description": "An IDE-native suite for Storybook.",
 	"version": "0.0.1",
+	"publisher": "aesop",
+	"repository": "https://github.com/Async-Aesop/aesop",
 	"engines": {
 		"vscode": "^1.41.0"
 	},
 	"categories": [
 		"Other"
 	],
-	"activationEvents":
-		[
+	"activationEvents": [
 		"onCommand:extension.aesopAwaken",
-		"onCommand:extension.tollTheHour"
-		],
+		"onCommand:extension.tollTheHour",
+		"onCommand:extension.getStories"
+	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
@@ -22,9 +24,12 @@
 				"title": "Aesop Awaken"
 			},
 			{
-
 				"command": "extension.tollTheHour",
 				"title": "Toll the Hour"
+			},
+			{
+				"command": "extension.getStories",
+				"title": "Get Storybook Stories"
 			}
 		]
 	},
@@ -45,5 +50,9 @@
 		"typescript": "^3.6.4",
 		"tslint": "^5.20.0",
 		"vscode-test": "^1.2.2"
+	},
+	"dependencies": {
+		"npm": "^6.13.4",
+		"vsce": "^1.71.0"
 	}
 }
