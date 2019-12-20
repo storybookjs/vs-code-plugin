@@ -41,17 +41,22 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"devDependencies": {
+		"@types/express": "^4.17.2",
 		"@types/glob": "^7.1.1",
 		"@types/mocha": "^5.2.7",
-		"@types/node": "^12.11.7",
+		"@types/node": "^12.12.21",
 		"@types/vscode": "^1.41.0",
 		"glob": "^7.1.5",
 		"mocha": "^6.2.2",
-		"typescript": "^3.6.4",
+		"ts-loader": "^6.2.1",
 		"tslint": "^5.20.0",
-		"vscode-test": "^1.2.2"
+		"typescript": "^3.6.4",
+		"vscode-test": "^1.2.2",
+		"webpack": "^4.41.4",
+		"webpack-cli": "^3.3.10"
 	},
 	"dependencies": {
+		"express": "^4.17.1",
 		"npm": "^6.13.4",
 		"vsce": "^1.71.0"
 	}
