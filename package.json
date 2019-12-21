@@ -3,7 +3,7 @@
 	"displayName": "Aesop",
 	"description": "An IDE-native suite for Storybook.",
 	"version": "0.0.2",
-	"publisher": "aesop",
+	"publisher": "async-aesop",
 	"repository": "https://github.com/Async-Aesop/aesop",
 	"engines": {
 		"vscode": "^1.41.0"
