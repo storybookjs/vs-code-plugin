@@ -35,7 +35,7 @@
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "webpack --mode production",
+		"vscode:prepublish": "npm run compile",
 		"webpack": "webpack --mode development",
 		"webpack-dev": "webpack --mode development --watch",
 		"test-compile": "tsc -p ./",
