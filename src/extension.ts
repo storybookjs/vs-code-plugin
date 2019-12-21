@@ -1,19 +1,17 @@
 import * as vscode from 'vscode';
-// import * as express from 'express';
+import * as express from 'express';
+import { resolveCliPathFromVSCodeExecutablePath } from 'vscode-test';
 
 //port should be variable to listen for action in the user's active terminal
 const PORT = 6006;
-// const server = express();
-
-// import MainUI from './toolbars/main_ui.ts';
-// import {server, PORT} from './server/server';
+const server = express();
 
 export function activate(context: vscode.ExtensionContext) {
-	// server.get('/', (req : Object, res : Object) => {
-	// 	vscode.window.showInformationMessage('Aesop server online');
-	// 	res.end();
-	// });
-	// server.listen(PORT);
+	server.get('http://localhost:6006', (req, res) => {
+		vscode.window.showInformationMessage('Aesop server online');
+		res.json();
+	});
+	server.listen(PORT);
 
 	//create disposable variable type, registers awaken command & opens webview
 	let disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
@@ -71,31 +69,30 @@ export function activate(context: vscode.ExtensionContext) {
 		//use retrieved info to fill out our HTML template inside the webview
 		//figure out how to use a tsx rule in webpack
 		//signal to babel to interpret this block as tsx, e.g.
-
 		//something like: @ tsx babel// (to determine syntax)
 
 		panel.webview.html = 
 		`<!DOCTYPE html>
 		<html lang="en">
 		<head>
-				<meta charset="UTF-8">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<title>Aesop</title>
-				<style>
-				html { width: 100%, height: 100%, min-height: 100%; display: flex; padding: 0, margin: 0}
-				body { flex: 1; display: inline-flex; width: 100%, justify-content: center}
-				iframe { flex: 1; border: none; background: white; min-width: 50%; max-height: 80%; vertical-align: center;}
-		</style>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<title>Aesop</title>
+			<style>
+				html { width: auto, height: auto, min-height: 20%; display: flex; padding: 0, margin: 0}
+				body { display: block; width: 100%, justify-content: center}
+				iframe { display: block; border: none; background: white; min-width: 50%; max-height: 80%; vertical-align: center;}
+			</style>
 		</head>
 		<body>
 				<nav class="main_ui">
 					<div>
-						<button></button>
-						<button></button>
+						<button>Reload</button>
+						<button>Match</button>
 						<button></button>
 					</div>
 				</nav>
-				<iframe src="http://localhost:${PORT}">
+				<iframe src=${htmlGlob}></iframe>
 				<script>${arrayOfScripts}</script>
 				</iframe>
 		</body>
