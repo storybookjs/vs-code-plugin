@@ -48,8 +48,8 @@ export function activate(context: vscode.ExtensionContext) {
 		//instantiate a watcher to listen for fs path changes (e.g. file creation/update)
 		//bools = options for ignoreCreateEvents?, ignoreChangeEvents?, ignoreDeleteEvents?
 		const observer = vscode.workspace.createFileSystemWatcher(distGlob, false, false, true);
-		observer.onDidChange = /*resolve*/;
-		observer.onDidCreate = /*resolve*/;
+		// observer.onDidChange = /*resolve*/;
+		// observer.onDidCreate = /*resolve*/;
 
 		//extract the index.html file that outputs into SB's preview pane
 		const htmlGlob = new vscode.RelativePattern(rootPath, "*/node_modules/@storybook/core/dist/public/*.html");
