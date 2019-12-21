@@ -38,6 +38,7 @@
 		"vscode:prepublish": "npm run compile",
 		"webpack": "webpack --mode development",
 		"webpack-dev": "webpack --mode development --watch",
+		"webpack-prod": "webpack --mode production",
 		"test-compile": "tsc -p ./",
 		"compile": "tsc -p ./",
 		"watch": "tsc -watch -p ./",
@@ -62,6 +63,7 @@
 	"dependencies": {
 		"express": "^4.17.1",
 		"npm": "^6.13.4",
-		"vsce": "^1.71.0"
+		"vsce": "^1.71.0",
+		"vscode": "^1.1.36"
 	}
 }
