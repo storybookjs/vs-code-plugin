@@ -1,20 +1,19 @@
 import * as vscode from 'vscode';
-import * as express from 'express';
+// import * as express from 'express';
 
 //port should be variable to listen for action in the user's active terminal
-const PORT = 8509;
-const server = express();
+const PORT = 6006;
+// const server = express();
 
 // import MainUI from './toolbars/main_ui.ts';
 // import {server, PORT} from './server/server';
 
 export function activate(context: vscode.ExtensionContext) {
-	server.get('/', (req : Object, res : Object) => {
-		vscode.window.showInformationMessage('Aesop server online');
-		res.end();
-	});
-
-	server.listen(PORT);
+	// server.get('/', (req : Object, res : Object) => {
+	// 	vscode.window.showInformationMessage('Aesop server online');
+	// 	res.end();
+	// });
+	// server.listen(PORT);
 
 	//create disposable variable type, registers awaken command & opens webview
 	let disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
@@ -43,7 +42,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		//access the first opened folder of the workspace array
 		//a potentially problematic assumption in multi-folder workspaces
-		const rootPath = vscode.workspace.workspaceFolders[0];
+		const rootPath : any = vscode.workspace.workspaceFolders[0];
 
 		//define a path to SB webpack bundle outputs (in user workspace /node_modules/ folder)
 		const distGlob = new vscode.RelativePattern(rootPath, "*/node_modules/@storybook/core/dist/public/");
@@ -85,7 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
 				<style>
 				html { width: 100%, height: 100%, min-height: 100%; display: flex; padding: 0, margin: 0}
 				body { flex: 1; display: inline-flex; width: 100%, justify-content: center}
-				iframe { flex-fl: 1; border: none; background: white; width: 50%}
+				iframe { flex: 1; border: none; background: white; min-width: 50%; max-height: 80%; vertical-align: center;}
 		</style>
 		</head>
 		<body>
