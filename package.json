@@ -13,8 +13,9 @@
 	],
 	"activationEvents": [
 		"onCommand:extension.aesopAwaken",
-		"onCommand:extension.tollTheHour",
-		"onCommand:extension.getStories"
+		"workspaceContains:**/node_modules/@storybook/core/dist/public/*{.html, .js}",
+		"onCommand:extension.getStories",
+		"onWebviewPanel:aesop-sb",
 	],
 	"main": "./dist/extension",
 	"contributes": {

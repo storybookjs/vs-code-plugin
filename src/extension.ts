@@ -40,7 +40,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		//access the first opened folder of the workspace array
 		//a potentially problematic assumption in multi-folder workspaces
-		const rootPath : any = vscode.workspace.workspaceFolders[0];
+		const rootPath = vscode.workspace.workspaceFolders[0];
 
 		//define a path to SB webpack bundle outputs (in user workspace /node_modules/ folder)
 		const distGlob = new vscode.RelativePattern(rootPath, "*/node_modules/@storybook/core/dist/public/");
@@ -71,6 +71,8 @@ export function activate(context: vscode.ExtensionContext) {
 		//signal to babel to interpret this block as tsx, e.g.
 		//something like: @ tsx babel// (to determine syntax)
 
+		//a toggle for the background -> black if no stories to show
+		const backgroundColor : String = (rootPath === undefined) ? "black" : "white";
 		panel.webview.html = 
 		`<!DOCTYPE html>
 		<html lang="en">
@@ -79,18 +81,14 @@ export function activate(context: vscode.ExtensionContext) {
 			<meta name="viewport" content="width=device-width, initial-scale=1.0">
 			<title>Aesop</title>
 			<style>
-				html { width: auto, height: auto, min-height: 20%; display: flex; padding: 0, margin: 0}
-				body { display: block; width: 100%, justify-content: center}
-				iframe { display: block; border: none; background: white; min-width: 50%; max-height: 80%; vertical-align: center;}
+				html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
+				body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
+				iframe { border: none; background: ${backgroundColor}; min-width: 50%; max-height: 80%; vertical-align: center;}
 			</style>
 		</head>
 		<body>
 				<nav class="main_ui">
-					<div>
-						<button>Reload</button>
-						<button>Match</button>
-						<button></button>
-					</div>
+						<button onClick="vscode.commands.getStories()">Refresh Aesop</button>
 				</nav>
 				<iframe src=${htmlGlob}></iframe>
 				<script>${arrayOfScripts}</script>
@@ -98,7 +96,7 @@ export function activate(context: vscode.ExtensionContext) {
 		</body>
 		</html>`;
 
-		vscode.window.showInformationMessage(`Aesop is ready to chronicle your stories!\n\nPlease use a command to begin: ${vscode.commands.getCommands(true)}`);
+		// vscode.window.showInformationMessage(`Aesop is ready to chronicle your stories!\n\nPlease use a command to begin: ${vscode.commands.getCommands(true)}`);
 	});
 
 	//subscribe this extension to the disposable
@@ -113,12 +111,14 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(disposable);
 
 	disposable = vscode.commands.registerCommand('extension.getStories', () => {
-		//business logic for generating the first instantiation of Storybook;
+		//build a command that retrieves Storybook files on startup
+		//can be executed later if Storybook server is spun up after the extension opens
+
 		vscode.window.showInformationMessage(`Aesop has read the script in your webview HTML!`);
 	});
 	context.subscriptions.push(disposable);
 }
 
-export function deactivate(context: vscode.ExtensionContext) {
-		vscode.window.showInformationMessage(`Aesop slumbers. Thank you for chronicling your Storybook with Aesop.`);
+export function deactivate() {
+
 }
