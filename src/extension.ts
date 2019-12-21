@@ -7,9 +7,9 @@ const PORT = 6006;
 const server = express();
 
 export function activate(context: vscode.ExtensionContext) {
-	server.get('http://localhost:6006', (req, res) => {
+	server.get('/', (req, res) => {
 		vscode.window.showInformationMessage('Aesop server online');
-		res.json();
+		res.end();
 	});
 	server.listen(PORT);
 
@@ -92,9 +92,8 @@ export function activate(context: vscode.ExtensionContext) {
 				<nav class="main_ui">
 						<button onClick="vscode.commands.getStories()">Refresh Aesop</button>
 				</nav>
-				<iframe src=${htmlGlob}></iframe>
-				<script>${arrayOfScripts}</script>
-				</iframe>
+				<iframe src="http://google.com"></iframe>
+				// <script>${arrayOfScripts}</script>
 		</body>
 		</html>`;
 
