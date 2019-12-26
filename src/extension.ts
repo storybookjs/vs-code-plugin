@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as express from 'express';
 import { resolveCliPathFromVSCodeExecutablePath } from 'vscode-test';
 import { pathToFileURL, fileURLToPath } from 'url';
+import * as path from 'path';
+import * as fs from 'fs';
 
 //port should be variable to listen for action in the user's active terminal
 // const PORT = 6006;
@@ -22,31 +24,70 @@ export function activate(context: vscode.ExtensionContext) {
 			'Aesop',
 			vscode.ViewColumn.Three,
 			{
+				enableCommandUris: true,
 				enableScripts: true,
-				localResourceRoots: [vscode.Uri.file(context.extensionPath)]
+				portMapping: [
+					{ webviewPort: 6006, extensionHostPort: 9009}
+				],
+				localResourceRoots: [vscode.workspace.workspaceFolders[0].uri]
 			}
 		);
+
+// <script src="${path.join(vscode.workspace.workspaceFolders[0].toString(), 'node_modules/@storybook/core/dist/public', '*.js')}"></script>
 
 		panel.webview.html = `<!DOCTYPE html>
 		<html lang="en">
 		<head>
+		<style>
+		body {
+			display: flex;
+			flex-flow: column nowrap;
+			padding: 0;
+			margin: 0;
+			width: 100%;
+			justify-content: center
+		}
+		iframe {
+			border: none;
+			background: blue;
+			min-width: 50%;
+			max-height: 100%;
+			min-height: 80%;
+			vertical-align: center;
+		}
+		</style>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Aesop</title>
-		<style>
-		html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
-		body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
-		iframe { border: none; background: blue; min-width: 50%; max-height: 80%; vertical-align: center;}
-		</style>
+		<script>window.acquireVsCodeApi = acquireVsCodeApi;</script>
 		</head>
+
 		<body>
-		<iframe src="http://google.com"></iframe>
-		<br/>
-		<span>Let's put some content here</span>
+		<iframe src="http://localhost:6006"></iframe>
 		</body>
 		</html>`;
 
-		vscode.window.showInformationMessage(`Aesop is ready to chronicle your stories!`);
+		const altPanel = vscode.window.createWebviewPanel("alt", "AltWebView", vscode.ViewColumn.Four, {
+			enableCommandUris: true,
+			enableScripts: true,
+			localResourceRoots: [vscode.workspace.workspaceFolders[0].uri]
+		});
+
+		const rootDir = fileURLToPath(vscode.workspace.workspaceFolders[0].uri.toString(true));
+		// const rootDir2 = vscode.workspace.workspaceFolders[0].uri.toString(true);
+		// const rootDir3 = vscode.workspace.workspaceFolders[0].uri.toString();
+		vscode.window.showInformationMessage(`${path.join(rootDir, '/node_modules/@storybook/core/dist/public/index.html')}`);
+		// vscode.window.showInformationMessage(`rootDir stringifiedURI: ${rootDir2}`);
+		// vscode.window.showInformationMessage(`rootDir encoded: ${rootDir3}`);
+		
+		fs.readFile(path.join(rootDir, '/node_modules/@storybook/core/dist/public/index.html'), (err, data) => {
+			if (err) console.error(err);
+			else {
+				altPanel.webview.html = data.toString();
+				vscode.window.showWarningMessage(data.toString());
+				vscode.window.showInformationMessage('Entered SB /dist/ folder');
+			}
+		});
 	});
 	
 	context.subscriptions.push(disposable);
@@ -68,52 +109,56 @@ export function activate(context: vscode.ExtensionContext) {
 		// ${vscode.commands.executeCommand('extension.getStories')}
 		// vscode.window.showInformationMessage('Aesop is reading from your Storybook.');
 
-		console.log(vscode.Uri.file(fileURLToPath(`/node_modules/@storybook/core/dist/public`)));
-
 		//define a path to SB webpack bundle outputs (in user workspace /node_modules/ folder)
-		const distGlob = new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "**/node_modules/@storybook/core/dist/public");
+		// if (vscode.workspace.workspaceFolders[0] !== undefined){
+		// 	const distGlob = new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "**/node_modules/@storybook/core/dist/public");
+		// 	//instantiate a watcher to listen for fs path changes (e.g. file creation/update)
+		// 	//bools = options for ignoreCreateEvents?, ignoreChangeEvents?, ignoreDeleteEvents?	
+		// 	const observer = vscode.workspace.createFileSystemWatcher(distGlob, false, false, false);
+		// 	// observer.onDidChange = /*resolve*/;		// observer.onDidCreate = /*resolve*/;
+		// 	//extract index.html file that outputs into SB's preview pane
+		// 	const htmlGlob = new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "*/node_modules/@storybook/core/dist/public/*.html");
+		// 	//extract necessary bundle scripts to leverage in-app dependencies
+		// 	const scriptGlob = new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "*/node_modules/@storybook/core/dist/public/*.js");
 
-		//instantiate a watcher to listen for fs path changes (e.g. file creation/update)
-		//bools = options for ignoreCreateEvents?, ignoreChangeEvents?, ignoreDeleteEvents?
-		// observer.onDidChange = /*resolve*/;		// observer.onDidCreate = /*resolve*/;
-		const observer = vscode.workspace.createFileSystemWatcher(distGlob, false, false, false);
-		
-		//extract index.html file that outputs into SB's preview pane
-		const htmlGlob = new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "*/node_modules/@storybook/core/dist/public/*.html");
-		//extract necessary bundle scripts to leverage in-app dependencies
-		const scriptGlob = new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], "*/node_modules/@storybook/core/dist/public/*.js");
-		
-		//do we need to resolve the Storybook UI script from the /dll/ folder?
-		//if extract methods above fail, determine logic to parse out HTML/.js scripts (index 0?);
-		//retrieve files with findFiles/relativeFilePath
-		const arrayOfScripts = vscode.workspace.findFiles(distGlob, null, 100);
+		// 	console.log(vscode.Uri.file(fileURLToPath(`/node_modules/@storybook/core/dist/public`)));
 
-		//dev check: have we successfully pulled down script files?
-		//if so, should we then store them locally, or is there no point?
-		if (arrayOfScripts !== undefined){
-			vscode.window.showInformationMessage("Hey, dog: " + `${arrayOfScripts}`);
-		}
+		// 	//do we need to resolve the Storybook UI script from the /dll/ folder?
+		// 	//if extract methods above fail, determine logic to parse out HTML/.js scripts (index 0?);
+		// 	//retrieve files with findFiles/relativeFilePath
+		// 	const arrayOfScripts = vscode.workspace.findFiles(distGlob, null, 100);
+		// 	//dev check: have we successfully pulled down script files?
+		// 	//if so, should we then store them locally, or is there no point?
+		// 	if (arrayOfScripts !== undefined){
+		// 		vscode.window.showInformationMessage("Hey, dog: " + `${arrayOfScripts}`);
+		// 	}
 
-		vscode.window.showInformationMessage(`
-		rootPath: ${vscode.workspace.workspaceFolders[0]},
-		vscode.Uri: ${vscode.Uri},
-		workspace: ${vscode.workspace},
-		distGlob: ${distGlob.toString()},
-		htmlGlob: ${htmlGlob.toString()},
-		scriptGlob: ${scriptGlob.toString()}
-		`);
+		// 	vscode.window.showInformationMessage(`
+		// 	rootPath: ${vscode.workspace.workspaceFolders[0]},
+		// 	vscode.Uri: ${vscode.Uri},
+		// 	workspace: ${vscode.workspace},
+		// 	distGlob: ${distGlob.toString()},
+		// 	htmlGlob: ${htmlGlob.toString()},
+		// 	scriptGlob: ${scriptGlob.toString()}
+		// 	`);
+		// };
 
-		console.log(`
-		rootPath: ${vscode.workspace.workspaceFolders[0]},
-		vscode.Uri: ${vscode.Uri},
-		workspace: ${vscode.workspace},
-		distGlob: ${distGlob.toString()},
-		htmlGlob: ${htmlGlob.toString()},
-		scriptGlob: ${scriptGlob.toString()}
-		`);
+		// vscode.window.showInformationMessage(`
+		// 	rootPath: ${vscode.workspace.workspaceFolders[0].uri.toString()},\n
+		// 	vscode URI parseTest: ${vscode.Uri.parse('file://'+ '/node_modules/@storybook/core/dist/public/index.html')},\n
+		// 	vscode URI parsed w escape: ${vscode.Uri.parse('file://'+ '/node_modules/\@storybook/core/dist/public/index.html')},\n
+		// 	vscode URI  file Test: ${vscode.Uri.file('node_modules/@storybook/core/dist/public/index.html')}
+		// 	`);
+			
+
+		// console.log(`
+		// rootPath: ${vscode.workspace.workspaceFolders[0]},
+		// vscode.Uri: ${vscode.Uri},
+		// workspace: ${vscode.workspace},
+		// fileSys: ${vscode.Uri.file(path.join('/'))}`);
 	});
 
 	context.subscriptions.push(disposable);
-}
+};
 
 export function deactivate() {}

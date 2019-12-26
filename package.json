@@ -22,10 +22,6 @@
 				"title": "Aesop Awaken"
 			},
 			{
-				"command": "extension.tollTheHour",
-				"title": "Toll the Hour"
-			},
-			{
 				"command": "extension.getStories",
 				"title": "Get Storybook Stories"
 			}
