@@ -17,9 +17,35 @@ export function activate(context: vscode.ExtensionContext) {
 	// server.listen(PORT);
 
 	//create disposable variable type, registers awaken command & opens webview
-	let disposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
-		
-		const panel = vscode.window.createWebviewPanel(
+	let disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
+		//declare an empty array (of strings) to push our scripts to during the next part
+		const scriptArray : Array<string> = [];
+		//define a path to the root working directory of the user
+		const rootDir = fileURLToPath(vscode.workspace.workspaceFolders[0].uri.toString(true));
+		//now let's read SB's outputted index.html file, and parse out what we need
+		fs.readFile(path.join(rootDir, '/node_modules/@storybook/core/dist/public/index.html'), (err, data) => {
+			if (err) console.error(err);
+			else {
+				//if we've read the HTML file, take its contents and stringify it
+				let outputFile = data.toString();
+				// this log shows what our eventual permutations would look like as we carve out the scripts
+				// vscode.window.showWarningMessage(`what's in it: ${outputFile.slice(outputFile.indexOf('<body>')+6, outputFile.indexOf('</body>'))} \n`)	
+				//split out the body section of the retrieved html file
+				outputFile = outputFile.slice(outputFile.indexOf('<body>')+6, outputFile.indexOf('</body>'));
+				vscode.window.showWarningMessage(`${outputFile} \n`)
+
+				//this loop will peel out all the scripts so long as there are any to rip out
+				while (outputFile.includes(`"<script src=`)){
+					//we push just what we need (the src attributes), leaving the <script>...</script> tags behind
+					let temp = outputFile.slice(outputFile.indexOf(`<script src="`)+12, outputFile.indexOf(`"></script>`));
+					scriptArray.push(temp);
+					outputFile = outputFile.slice(outputFile.indexOf(`"></script>`)+10);
+				}
+			};
+		});
+
+		//still inside our disposable variable, let's create the webview panel
+		const panel : vscode.WebviewPanel = vscode.window.createWebviewPanel(
 			'aesop-sb',
 			'Aesop',
 			vscode.ViewColumn.Three,
@@ -28,80 +54,85 @@ export function activate(context: vscode.ExtensionContext) {
 				enableScripts: true,
 				portMapping: [
 					{ webviewPort: 6006, extensionHostPort: 9009}
-				],
-				localResourceRoots: [vscode.workspace.workspaceFolders[0].uri]
+				]
 			}
 		);
 
-// <script src="${path.join(vscode.workspace.workspaceFolders[0].toString(), 'node_modules/@storybook/core/dist/public', '*.js')}"></script>
+//errors to tackle
+//creates the webview
+//displays output file body segment
 
-		panel.webview.html = `<!DOCTYPE html>
-		<html lang="en">
-		<head>
-		<style>
-		body {
-			display: flex;
-			flex-flow: column nowrap;
-			padding: 0;
-			margin: 0;
-			width: 100%;
-			justify-content: center
-		}
-		iframe {
-			border: none;
-			background: blue;
-			min-width: 50%;
-			max-height: 100%;
-			min-height: 80%;
-			vertical-align: center;
-		}
-		</style>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Aesop</title>
-		<script>window.acquireVsCodeApi = acquireVsCodeApi;</script>
-		</head>
+	// to-do:
+	// figure out how to iteratively call sb scripts within our webview
+	// webview messages / scripts to reload
+	// figure out how to use a tsx rule in webpack to execute scripts
+	// signal babel to interpret this block as tsx, e.g. something like: //@tsx babel//
 
-		<body>
-		<iframe src="http://localhost:6006"></iframe>
-		</body>
-		</html>`;
+		panel.webview.html =
+			`<!DOCTYPE html>
+			<html lang="en">
+				<head>
+					<style>
+						body {
+							display: flex;
+							flex-flow: column nowrap;
+							padding: 0;
+							margin: 0;
+							width: 100%;
+							justify-content: center
+						}
+						iframe {
+							border: none;
+							background: blue;
+							min-width: 50%;
+							max-height: 100%;
+							min-height: 80%;
+							vertical-align: center;
+						}
+					</style>
+					<meta charset="UTF-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+					<title>Aesop</title>
+				</head>
 
-		const altPanel = vscode.window.createWebviewPanel("alt", "AltWebView", vscode.ViewColumn.Four, {
-			enableCommandUris: true,
-			enableScripts: true,
-			localResourceRoots: [vscode.workspace.workspaceFolders[0].uri]
-		});
+				<body>
+					<div id="root"></div>
+					<div id="docs-root"></div>
+					<div id="scriptExecute">
+						<script>window.acquireVsCodeApi = acquireVsCodeApi;</script>
+						<script>window['DOCS_MODE'] = false;</script>
+						<script>
+							${
+								scriptArray.map( (el) => {
+									if (el.includes("./sb_dll")){
+										let uiScript = document.createElement("script");
+										uiScript.async = true;
+										uiScript.defer = true;
+										uiScript.referrerPolicy = "origin";
+										uiScript.src = path.join(rootDir, `/node_modules/@storybook/core/dll/${el}`);
+										document.getElementById("scriptExecute").appendChild(uiScript);
+									}	else {
+										let capturedScript = document.createElement("script");
+										capturedScript.async = true;
+										capturedScript.defer = true;
+										capturedScript.referrerPolicy = "origin";
+										capturedScript.src = path.join(rootDir, `/node_modules/@storybook/core/dist/public/${el}`);
+										document.getElementById("scriptExecute").appendChild(capturedScript);
+									}
+								})
+							}
+						</script>
+					</div>
+					<iframe sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation" src="http://localhost:6006"></iframe>
+				</body>
+			</html>`;
 
-		const rootDir = fileURLToPath(vscode.workspace.workspaceFolders[0].uri.toString(true));
-		// const rootDir2 = vscode.workspace.workspaceFolders[0].uri.toString(true);
-		// const rootDir3 = vscode.workspace.workspaceFolders[0].uri.toString();
-		vscode.window.showInformationMessage(`${path.join(rootDir, '/node_modules/@storybook/core/dist/public/index.html')}`);
-		// vscode.window.showInformationMessage(`rootDir stringifiedURI: ${rootDir2}`);
-		// vscode.window.showInformationMessage(`rootDir encoded: ${rootDir3}`);
-		
-		fs.readFile(path.join(rootDir, '/node_modules/@storybook/core/dist/public/index.html'), (err, data) => {
-			if (err) console.error(err);
-			else {
-				altPanel.webview.html = data.toString();
-				vscode.window.showWarningMessage(data.toString());
-				vscode.window.showInformationMessage('Entered SB /dist/ folder');
-			}
-		});
+		vscode.window.showInformationMessage('Entered SB /dist/ folder');
 	});
 	
 	context.subscriptions.push(disposable);
 
-	// to-do:
-	// figure out how to launch dev remote host
-	// figure out how to iteratively call sb script
-	// webview messages / scripts
-	// use retrieved info to fill out our HTML template inside the webview
-	// figure out how to use a tsx rule in webpack
-	// signal to babel to interpret this block as tsx, e.g.
-	// something like: @ tsx babel// (to determine syntax)
-
-	disposable = vscode.commands.registerCommand('extension.getStories', () => {
+	// disposable = vscode.commands.registerCommand('extension.getStories', () => {
 		//build a command that retrieves Storybook files on startup
 		//can be executed later if Storybook server is spun up after the extension opens
 		
@@ -156,9 +187,9 @@ export function activate(context: vscode.ExtensionContext) {
 		// vscode.Uri: ${vscode.Uri},
 		// workspace: ${vscode.workspace},
 		// fileSys: ${vscode.Uri.file(path.join('/'))}`);
-	});
+	// });
 
-	context.subscriptions.push(disposable);
+	// context.subscriptions.push(disposable);
 };
 
 export function deactivate() {}
