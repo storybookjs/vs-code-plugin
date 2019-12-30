@@ -4,7 +4,8 @@ import { resolveCliPathFromVSCodeExecutablePath } from 'vscode-test';
 import { pathToFileURL, fileURLToPath } from 'url';
 
 //port should be variable to listen for action in the user's active terminal
-// const PORT = 6006;
+const port = 9009;
+const host = "localhost"
 // const server = express();
 
 export function activate(context: vscode.ExtensionContext) {
@@ -36,13 +37,13 @@ export function activate(context: vscode.ExtensionContext) {
 		<style>
 		html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
 		body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
-		iframe { border: none; background: blue; min-width: 50%; max-height: 80%; vertical-align: center;}
 		</style>
 		</head>
-		<body>
-		<iframe src="http://google.com"></iframe>
-		<br/>
-		<span>Let's put some content here</span>
+		<body id="root">
+	
+		<iframe src="http://${host}:${port}/?path=/story/task--default" width="100%" height="500"></iframe>
+		<p>If you're seeing this, something is wrong :) (can't find server at ${host}:${port})</p>
+		<span>Let's put some content here v55</span>
 		</body>
 		</html>`;
 
