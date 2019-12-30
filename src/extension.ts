@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
-import * as express from 'express';
+// import * as express from 'express';
 import { resolveCliPathFromVSCodeExecutablePath } from 'vscode-test';
 import { pathToFileURL, fileURLToPath } from 'url';
 import * as path from 'path';
 import * as fs from 'fs';
 
 //port should be variable to listen for action in the user's active terminal
-// const PORT = 6006;
+const PORT = 6006;
+const host = 'localhost';
 // const server = express();
 
 export function activate(context: vscode.ExtensionContext) {
@@ -18,7 +19,55 @@ export function activate(context: vscode.ExtensionContext) {
 
 	//create disposable variable type, registers awaken command & opens webview
 	let disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
-		// //declare an empty array (of strings) to push our scripts to during the next part
+
+		//still inside our disposable variable, let's create the webview panel
+		const panel : vscode.WebviewPanel = vscode.window.createWebviewPanel(
+			'aesop-sb',
+			'Aesop',
+			vscode.ViewColumn.Three,
+			{
+				enableCommandUris: true,
+				enableScripts: true,
+				// portMapping: [
+				// 	{ webviewPort: 6006, extensionHostPort: 9009}
+				// ]
+			}
+		);
+
+		panel.webview.html =
+			`<!DOCTYPE html>
+			<html lang="en">
+				<head>
+					<meta charset="UTF-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+					<title>Aesop</title>
+				</head>
+				<body>
+					<iframe src="http://localhost:6006/?path=/story/welcome--to-storybook" sandbox="allow-scripts" style="width:1200px; height:500px">
+					<script>
+					setTimeout( () => {
+						console.log("Here is a script running in the iframe. Version 12/30/2019");
+					}, 10000);
+					document.body.getElementByTagName('nav').style="backgroundColor:red";
+					</script>
+					</iframe>
+				</body>
+			</html>`;
+		});
+
+	context.subscriptions.push(disposable);
+}
+
+export function deactivate() {}
+
+	
+// to-do:
+	// figure out how to iteratively call sb scripts within our webview
+	// webview messages / scripts to reload
+	// figure out how to use a tsx rule in webpack to execute scripts
+	// signal babel to interpret this block as tsx, e.g. something like: //@tsx babel//
+
+	// //declare an empty array (of strings) to push our scripts to during the next part
 		// const scriptArray : Array<string> = [];
 		// //define a path to the root working directory of the user
 		// const rootDir = fileURLToPath(vscode.workspace.workspaceFolders[0].uri.toString(true));
@@ -44,47 +93,6 @@ export function activate(context: vscode.ExtensionContext) {
 		// 	};
 		// });
 
-		//still inside our disposable variable, let's create the webview panel
-		const panel : vscode.WebviewPanel = vscode.window.createWebviewPanel(
-			'aesop-sb',
-			'Aesop',
-			vscode.ViewColumn.Three,
-			{
-				enableCommandUris: true,
-				enableScripts: true,
-				// portMapping: [
-				// 	{ webviewPort: 6006, extensionHostPort: 9009}
-				// ]
-			}
-		);
-
-//errors to tackle
-//creates the webview
-//displays output file body segment
-
-	// to-do:
-	// figure out how to iteratively call sb scripts within our webview
-	// webview messages / scripts to reload
-	// figure out how to use a tsx rule in webpack to execute scripts
-	// signal babel to interpret this block as tsx, e.g. something like: //@tsx babel//
-
-		panel.webview.html =
-			`<!DOCTYPE html>
-			<html lang="en">
-				<head>
-					<meta charset="UTF-8">
-					<meta name="viewport" content="width=device-width, initial-scale=1.0">
-					<title>Aesop</title>
-				</head>
-				<body>
-					<iframe src="http://localhost:6006/?path=/story/welcome--to-storybook" style="width:500px; height:500px">
-					</iframe>
-				</body>
-			</html>`;
-
-	context.subscriptions.push(disposable);
-	});
-	
 // <div id="root"></div>
 // <div id="docs-root"></div>	
 // 	<div id="scriptExecute">
@@ -162,15 +170,9 @@ export function activate(context: vscode.ExtensionContext) {
 		// 	vscode URI  file Test: ${vscode.Uri.file('node_modules/@storybook/core/dist/public/index.html')}
 		// 	`);
 			
-
 		// console.log(`
 		// rootPath: ${vscode.workspace.workspaceFolders[0]},
 		// vscode.Uri: ${vscode.Uri},
 		// workspace: ${vscode.workspace},
 		// fileSys: ${vscode.Uri.file(path.join('/'))}`);
 	// });
-
-	// context.subscriptions.push(disposable);
-};
-
-export function deactivate() {}
