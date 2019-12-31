@@ -53,8 +53,10 @@
 		"webpack-cli": "^3.3.10"
 	},
 	"dependencies": {
+		"@storybook/channel-websocket": "^5.2.8",
 		"express": "^4.17.1",
 		"npm": "^6.13.4",
-		"vsce": "^1.71.0"
+		"vsce": "^1.71.0",
+		"ws": "^7.2.1"
 	}
 }
