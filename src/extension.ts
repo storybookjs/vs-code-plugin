@@ -1,23 +1,24 @@
 import * as vscode from 'vscode';
 import { fileURLToPath } from 'url';
-import createChannel from '@storybook/channel-websocket';
-import * as Websocket from 'ws';
 import * as path from 'path';
 import * as fs from 'fs';
-// import * as express from 'express';
-// import { resolveCliPathFromVSCodeExecutablePath } from 'vscode-test';
-import { StoryTreeProvider, StoryObject, Story } from "./tree-provider";
-import { StoryPickerProvider, StorySelection } from "./picker-provider";
+import * as ps from 'ps-node';
 
-const g = global as any;
-g.Websocket = Websocket;
 let PORT = 6006;
 const host = 'localhost';
+
+// import * as express from 'express';
+// import { resolveCliPathFromVSCodeExecutablePath } from 'vscode-test';
+// import createChannel from '@storybook/channel-websocket';
+// import * as Websocket from 'ws';
+// import { StoryTreeProvider, StoryObject, Story } from "./tree-provider";
+// import { StoryPickerProvider, StorySelection } from "./picker-provider";
+// const g = global as any;
+// g.Websocket = Websocket;
+// let storybookChannel : any;
+// const connectedOnce : Boolean = false;
+
 // const server = express();
-
-let storybookChannel : any;
-const connectedOnce : Boolean = false;
-
 export function activate(context: vscode.ExtensionContext) {
 	// server.get('/', (req, res) => {
 	// 	vscode.window.showInformationMessage('Aesop server online');
@@ -31,18 +32,42 @@ export function activate(context: vscode.ExtensionContext) {
 	//define a path to the root working directory of the user
 	const rootDir = fileURLToPath(vscode.workspace.workspaceFolders[0].uri.toString(true));
 
-	//check to see if Storybook has been depended into the current working root directory
-		fs.readFile(path.join(rootDir, '/node_modules/@storybook'), (err, data) => {
-			if (err) vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder.`);
-			else {
-        //check to see if the process is already running
-        //?
+	//check first to ensure that Storybook has been depended into the current working directory
+		fs.access(path.join(rootDir, '/node_modules/@storybook'), (err) => {
+			//if the filepath isn't found, show the user what Aesop is reading as the root path
+			if (err) {
+				vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder, ${rootDir}`);
+			}	else {
+        //check to see if a storybook node process is already running
+        ps.lookup({
+					command: 'node',
+					psargs: 'ux'
+				}, (err, resultList) => {
+					if (err){
+						vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
+					} else {
+						//potential problem: we may also need to account for running processes given no port flag
+						resultList.forEach((process) => {
+							vscode.window.showInformationMessage('Process:', process);
+							vscode.window.showInformationMessage('JSON stringify', JSON.stringify(process));
+							//check if any running processes are using the start-storybook script
+							if(process.arguments[0].includes('start-storybook')){
+								//stretch goal: check for multiple instances of storybook and reconcile
+								vscode.window.showInformationMessage('PID: %s, COMMAND: %s, ARGUMENTS: %s', process.pid, process.command, process.arguments);
+								//if so, extract port number and use that value to populate the webview with that contents
+								const sbProcess = process.arguments;
+								const portFlag = '-p';
+								const pFlagIndex = sbProcess.indexOf(portFlag);
+								if (pFlagIndex !== -1){
+									PORT = Number(process.arguments[pFlagIndex+1]);
+								};
+							}
+						});
+					}
+				});
 
-        //if so, extract its port number and use that value to populate the webview with that contents
-        //grab port, set PORT = grabbed port number
-
+				/*
         //if not, we begin a process that starts with extracting existing npm scripts and changing them:
-
         //check the existing storybook script in the package.json
         fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
           if (err) vscode.window.showErrorMessage(`Does this root folder contain a "package.json" file?`);
@@ -54,7 +79,8 @@ export function activate(context: vscode.ExtensionContext) {
             let targetScriptStartIndex = packageJSONText.indexOf(`"storybook":`)+12;
 
             //retrieve the value (i.e. the entire line of text) of the "storybook" script
-            let retrievedScript = packageJSONText.slice(targetScriptStartIndex, packageJSONText.indexOf('\n'));
+						let retrievedScript = packageJSONText.slice(targetScriptStartIndex, packageJSONText.indexOf('\n'));
+						vscode.window.showWarningMessage(retrievedScript);
 
             //iterate through that text string and parse out important flags
             //it is more helpful to split it into an array separated by whitespace to grab these
@@ -62,12 +88,12 @@ export function activate(context: vscode.ExtensionContext) {
             for (let i = 0; i < retrievedScriptAsArray.length; i++){
 							//add flags
               if (retrievedScriptAsArray[i] === '-p'){
-                PORT = Number(retrievedScriptAsArray[i+1]);
+								PORT = Number(retrievedScriptAsArray[i+1]);
               };
             }
 
             //define the script text to execute to the virtual terminal instance
-            const bootStorybook = `${retrievedScript} -ci`
+            const bootStorybook = `${retrievedScript} --ci`
 
             //now create a virtual terminal and execute our special npm script for it
             //this first requires creating an eventEmitter that will fire that script
@@ -85,8 +111,9 @@ export function activate(context: vscode.ExtensionContext) {
 						//processExecution?
 					}
 				})
+				*/
 			}
-		})
+		})		
 
 		//still inside our disposable variable, let's create the webview panel
 		const panel : vscode.WebviewPanel = vscode.window.createWebviewPanel(
@@ -111,14 +138,9 @@ export function activate(context: vscode.ExtensionContext) {
 					<title>Aesop</title>
 				</head>
 				<body>
-					<iframe src="http://${host}:${PORT}/?path=/story/welcome--to-storybook" sandbox="allow-scripts allow-origin" style="height:500px"></iframe>
-					<script type="text/javascript">
-					console.log('Hello world!');
-					document.querySelector('nav').style.backgroundColor = "red";
-					</script>;
-					<script defer>window.location.reload();</script>
+					<iframe src="http://${host}:${PORT}/?path=/story/welcome--to-storybook" style="height:500px;width:500px;"></iframe>
 				</body>
-			</html>`;
+			</html>`
 		});
 
 	context.subscriptions.push(disposable);
@@ -128,7 +150,7 @@ export function deactivate() {
 
 }
 
-vscode.commands.executeCommand("setContext", "is-running-storybooks-vscode", true)
+// vscode.commands.executeCommand("setContext", "is-running-storybooks-vscode", true)
 
 //   let previewUri = vscode.Uri.parse("storybook://authority/preview")
 //   class TextDocumentContentProvider implements vscode.TextDocumentContentProvider {
