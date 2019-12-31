@@ -48,10 +48,11 @@ export function activate(context: vscode.ExtensionContext) {
 					} else {
 						//potential problem: we may also need to account for running processes given no port flag
 						resultList.forEach((process) => {
-							vscode.window.showInformationMessage('Process:', process);
 							vscode.window.showInformationMessage('JSON stringify', JSON.stringify(process));
+							fs.writeFile(path.join(rootDir, 'YOLO.txt'), JSON.stringify(process), (err) => console.log(`Couldn't yolo: ${err}`));
+							console.log(JSON.stringify(process));
 							//check if any running processes are using the start-storybook script
-							if(process.arguments[0].includes('start-storybook')){
+							if(process.arguments[0].includes('storybook')){
 								//stretch goal: check for multiple instances of storybook and reconcile
 								vscode.window.showInformationMessage('PID: %s, COMMAND: %s, ARGUMENTS: %s', process.pid, process.command, process.arguments);
 								//if so, extract port number and use that value to populate the webview with that contents
