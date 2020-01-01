@@ -81,10 +81,10 @@ class Dependency extends vscode.TreeItem {
     super(label, collapsibleState)
   }
 
-  // iconPath = {
-  //   light: path.join(__filename, "..", "..", "..", "resources", "light", "dependency.svg"),
-  //   dark: path.join(__filename, "..", "..", "..", "resources", "dark", "dependency.svg")
-  // }
+  iconPath = {
+    light: path.join(__filename, "..", "..", "..", "resources", "light", "dependency.svg"),
+    dark: path.join(__filename, "..", "..", "..", "resources", "dark", "dependency.svg")
+  }
   
   contextValue = this.storyKind;
 }
