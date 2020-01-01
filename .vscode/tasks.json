@@ -15,6 +15,26 @@
 				"kind": "build",
 				"isDefault": true
 			}
+		},
+		{
+			"label": "autopep8 current file",
+			"type": "process",
+			"command": "${config:python.pythonPath}",
+			"args": ["storybook", "--ci"]
+		},
+		{
+			"label": "Boot Storybook",
+			"type": "process",
+			"command": "${config:aesop.Chronicle}",
+			"args": ["storybook", "--ci"],
+			"group": "none",
+			"presentation": {
+				"reveal": "never",
+				"focus": false,
+				"clear": true,
+				"panel": "shared"
+			},
+			"detail": "Aesop: Chronicle"
 		}
 	]
 }

@@ -48,9 +48,9 @@ export function activate(context: vscode.ExtensionContext) {
 					} else {
 						//potential problem: we may also need to account for running processes given no port flag
 						resultList.forEach((process) => {
-							vscode.window.showInformationMessage('JSON stringify', JSON.stringify(process));
-							fs.writeFile(path.join(rootDir, 'YOLO.txt'), JSON.stringify(process), (err) => console.log(`Couldn't yolo: ${err}`));
-							console.log(JSON.stringify(process));
+							// vscode.window.showInformationMessage('JSON stringify', JSON.stringify(process));
+							// fs.writeFile(path.join(rootDir, 'YOLO.txt'), JSON.stringify(process), (err) => console.log(`Couldn't yolo: ${err}`));
+							// console.log(JSON.stringify(process));
 							//check if any running processes are using the start-storybook script
 							if(process.arguments[0].includes('storybook')){
 								//stretch goal: check for multiple instances of storybook and reconcile
@@ -67,7 +67,7 @@ export function activate(context: vscode.ExtensionContext) {
 					}
 				});
 
-				/*
+				
         //if not, we begin a process that starts with extracting existing npm scripts and changing them:
         //check the existing storybook script in the package.json
         fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
@@ -94,7 +94,8 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             //define the script text to execute to the virtual terminal instance
-            const bootStorybook = `${retrievedScript} --ci`
+            const bootScript = `npm run storybook --ci`
+						const bootStorybook = new vscode.ShellExecution(bootScript);
 
             //now create a virtual terminal and execute our special npm script for it
             //this first requires creating an eventEmitter that will fire that script
@@ -103,16 +104,14 @@ export function activate(context: vscode.ExtensionContext) {
             //we also define a slave process Pseudoterminal (allowing Aesop to control the terminal)
             const pty: vscode.Pseudoterminal = {
               onDidWrite: scriptEmitter.event,
-              open: () => scriptEmitter.fire(bootStorybook),
+              open: () => bootStorybook,
               close: () => {},
               handleInput: data => scriptEmitter.fire(data === '\r' ? '\r\n' : data)
             };
 
             const virtualTerminal = vscode.window.createTerminal({name: 'sb-runner', pty});
-						//processExecution?
 					}
 				})
-				*/
 			}
 		})		
 

@@ -1070,9 +1070,9 @@ function activate(context) {
                     else {
                         //potential problem: we may also need to account for running processes given no port flag
                         resultList.forEach((process) => {
-                            vscode.window.showInformationMessage('JSON stringify', JSON.stringify(process));
-                            fs.writeFile(path.join(rootDir, 'YOLO.txt'), JSON.stringify(process), (err) => console.log(`Couldn't yolo: ${err}`));
-                            console.log(JSON.stringify(process));
+                            // vscode.window.showInformationMessage('JSON stringify', JSON.stringify(process));
+                            // fs.writeFile(path.join(rootDir, 'YOLO.txt'), JSON.stringify(process), (err) => console.log(`Couldn't yolo: ${err}`));
+                            // console.log(JSON.stringify(process));
                             //check if any running processes are using the start-storybook script
                             if (process.arguments[0].includes('storybook')) {
                                 //stretch goal: check for multiple instances of storybook and reconcile
@@ -1089,52 +1089,46 @@ function activate(context) {
                         });
                     }
                 });
-                /*
-        //if not, we begin a process that starts with extracting existing npm scripts and changing them:
-        //check the existing storybook script in the package.json
-        fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
-          if (err) vscode.window.showErrorMessage(`Does this root folder contain a "package.json" file?`);
-          else {
-            //enter the package.JSON file and retrieve its contents as a string
-            let packageJSONText = data.toString();
-
-            //find where the "storybook" script is defined
-            let targetScriptStartIndex = packageJSONText.indexOf(`"storybook":`)+12;
-
-            //retrieve the value (i.e. the entire line of text) of the "storybook" script
+                //if not, we begin a process that starts with extracting existing npm scripts and changing them:
+                //check the existing storybook script in the package.json
+                fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
+                    if (err)
+                        vscode.window.showErrorMessage(`Does this root folder contain a "package.json" file?`);
+                    else {
+                        //enter the package.JSON file and retrieve its contents as a string
+                        let packageJSONText = data.toString();
+                        //find where the "storybook" script is defined
+                        let targetScriptStartIndex = packageJSONText.indexOf(`"storybook":`) + 12;
+                        //retrieve the value (i.e. the entire line of text) of the "storybook" script
                         let retrievedScript = packageJSONText.slice(targetScriptStartIndex, packageJSONText.indexOf('\n'));
                         vscode.window.showWarningMessage(retrievedScript);
-
-            //iterate through that text string and parse out important flags
-            //it is more helpful to split it into an array separated by whitespace to grab these
-            let retrievedScriptAsArray = retrievedScript.split(' ');
-            for (let i = 0; i < retrievedScriptAsArray.length; i++){
+                        //iterate through that text string and parse out important flags
+                        //it is more helpful to split it into an array separated by whitespace to grab these
+                        let retrievedScriptAsArray = retrievedScript.split(' ');
+                        for (let i = 0; i < retrievedScriptAsArray.length; i++) {
                             //add flags
-              if (retrievedScriptAsArray[i] === '-p'){
-                                PORT = Number(retrievedScriptAsArray[i+1]);
-              };
-            }
-
-            //define the script text to execute to the virtual terminal instance
-            const bootStorybook = `${retrievedScript} --ci`
-
-            //now create a virtual terminal and execute our special npm script for it
-            //this first requires creating an eventEmitter that will fire that script
-            const scriptEmitter = new vscode.EventEmitter<string>();
-    
-            //we also define a slave process Pseudoterminal (allowing Aesop to control the terminal)
-            const pty: vscode.Pseudoterminal = {
-              onDidWrite: scriptEmitter.event,
-              open: () => scriptEmitter.fire(bootStorybook),
-              close: () => {},
-              handleInput: data => scriptEmitter.fire(data === '\r' ? '\r\n' : data)
-            };
-
-            const virtualTerminal = vscode.window.createTerminal({name: 'sb-runner', pty});
+                            if (retrievedScriptAsArray[i] === '-p') {
+                                PORT = Number(retrievedScriptAsArray[i + 1]);
+                            }
+                            ;
+                        }
+                        //define the script text to execute to the virtual terminal instance
+                        const bootScript = `npm run storybook --ci`;
+                        const bootStorybook = new vscode.ProcessExecution(bootScript);
+                        //now create a virtual terminal and execute our special npm script for it
+                        //this first requires creating an eventEmitter that will fire that script
+                        const scriptEmitter = new vscode.EventEmitter();
+                        //we also define a slave process Pseudoterminal (allowing Aesop to control the terminal)
+                        const pty = {
+                            onDidWrite: scriptEmitter.event,
+                            open: () => bootStorybook,
+                            close: () => { },
+                            handleInput: data => scriptEmitter.fire(data === '\r' ? '\r\n' : data)
+                        };
+                        const virtualTerminal = vscode.window.createTerminal({ name: 'sb-runner', pty });
                         //processExecution?
                     }
-                })
-                */
+                });
             }
         });
         //still inside our disposable variable, let's create the webview panel
