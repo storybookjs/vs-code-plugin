@@ -17,16 +17,9 @@
 			}
 		},
 		{
-			"label": "autopep8 current file",
-			"type": "process",
-			"command": "${config:python.pythonPath}",
-			"args": ["storybook", "--ci"]
-		},
-		{
 			"label": "Boot Storybook",
 			"type": "process",
-			"command": "${config:aesop.Chronicle}",
-			"args": ["storybook", "--ci"],
+			"command": "npm run storybook --ci",
 			"group": "none",
 			"presentation": {
 				"reveal": "never",

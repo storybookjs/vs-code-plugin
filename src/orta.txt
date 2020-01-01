@@ -256,4 +256,34 @@ const connectedOnce : Boolean = false;
   export function deactivate() {
     storybookChannel.transport.socket.close();
   }
-  
+
+
+
+
+
+			{
+        "command": "extension.searchStories",
+        "title": "Storybook search / picker"
+      },
+      {
+        "command": "extension.showStorybookPreview",
+        "title": "Show Storybook tab"
+      },
+      {
+        "command": "extension.connectToStorybooks",
+        "title": "Connect Storybook to VS Code",
+        "when": "is-running-aesop"
+      },
+      {
+        "command": "extension.restartConnectionToStorybooks",
+        "title": "Reconnect Storybook to Aesop",
+        "when": "is-running-aesop"
+      },
+      {
+        "command": "extension.expandAllStories",
+        "title": "Expand stories in Storybook Explorer"
+      },
+      {
+        "command": "extension.collapseAllStories",
+        "title": "Collapse stories in Storybook Explorer"
+      }
