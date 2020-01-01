@@ -18,9 +18,6 @@ export function activate(context: vscode.ExtensionContext) {
 	// });
 	// server.listen(PORT);
 
-	//set the extension context equal to "aesop is running"
-	vscode.commands.executeCommand("setContext", "is-running-aesop", true);
-
   //create disposable variable type, registers awaken command & opens webview
 	let disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
 
@@ -138,6 +135,9 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		})
 
+		//set the extension context equal to "aesop is running"
+		// vscode.commands.executeCommand("setContext", "is-running-aesop", true);
+
 		//still inside our disposable variable, let's create the webview panel
 		const panel : vscode.WebviewPanel = vscode.window.createWebviewPanel(
 			'aesop-sb',
@@ -146,9 +146,9 @@ export function activate(context: vscode.ExtensionContext) {
 			{
 				enableCommandUris: true,
 				enableScripts: true,
-				portMapping: [
-					{ webviewPort: PORT, extensionHostPort: PORT}
-				]
+				// portMapping: [
+				// 	{ webviewPort: PORT, extensionHostPort: PORT}
+				// ]
 			}
 		);
 
@@ -165,12 +165,12 @@ export function activate(context: vscode.ExtensionContext) {
 				</body>
 			</html>`
 	})
-	//closes disposable
 
 	context.subscriptions.push(disposable);
 };
 
 export function deactivate() {
+	
 }
 
 /*
