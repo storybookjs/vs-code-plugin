@@ -1032,6 +1032,8 @@ const ps = __webpack_require__(/*! ps-node */ "./node_modules/ps-node/index.js")
 function activate(context) {
     let PORT = 6006;
     const host = 'localhost';
+    let dependencyFound = false;
+    let foundSb = false;
     //create disposable variable type, registers awaken command & opens webview
     let disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
         //define a path to the root working directory of the user
@@ -1043,79 +1045,83 @@ function activate(context) {
                 vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder, ${rootDir}`);
             }
             else {
-                //check to see if a storybook node process is already running
-                ps.lookup({
-                    command: 'node',
-                    psargs: 'ux'
-                }, (err, resultList) => {
-                    if (err) {
-                        vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
-                    }
-                    else {
-                        let foundSb = false;
-                        //if the process lookup was able to find running processes, iterate through to review them
-                        resultList.forEach((process) => {
-                            // ---> OUTPUT LOGGER <--- //
-                            fs.writeFile(path.join(rootDir, 'YOLO.txt'), `Here is the JSON-stringified version of a process:\n${JSON.stringify(process)}\n`, (err) => { console.log(`Couldn't output process information to YOLO.txt: ${err}`); });
-                            vscode.window.showInformationMessage('Check YOLO.txt for output information');
-                            //check if any running processes are using the start-storybook script
-                            if (process.arguments[0].includes('storybook')) {
-                                foundSb = true;
-                                //stretch goal: check for multiple instances of storybook and reconcile
-                                //if so, extract port number and use that value to populate the webview with that contents
-                                const pFlagIndex = process.arguments.indexOf('-p');
-                                if (pFlagIndex !== -1) {
-                                    PORT = Number(process.arguments[pFlagIndex + 1]);
-                                }
-                                // ---> OUTPUT LOGGER <--- //
-                                fs.appendFile(path.join(rootDir, 'YOLO.txt'), `This process matches for 'storybook'search string:\n
-								PID: ${process.pid}, COMMAND:${process.command}, ARGUMENTS: ${process.arguments}\n`, (err) => { console.log(err); });
-                            }
-                        });
-                        if (foundSb === false) {
-                            //if no processes match 'storybook', we will have to spin up the storybook server
-                            //starts by extracting the existing storybook script in the package.json
-                            fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
-                                if (err) {
-                                    vscode.window.showErrorMessage(`Does this root folder contain a "package.json" file?`);
-                                }
-                                else {
-                                    //enter the package.JSON file and retrieve its contents as a string
-                                    let packageJSONText = JSON.parse(data.toString());
-                                    let storybookScript = packageJSONText.scripts.storybook;
-                                    // // ---> OUTPUT LOGGER <--- //
-                                    // fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Here is the JSON parsed version:\n
-                                    // ${packageJSONText.scripts}\n
-                                    // ${packageJSONText.scripts.storybook}`, (err) => {console.log(err)});
-                                    // // ---> OUTPUT LOGGER <--- //
-                                    // fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Here is the full contents of the package.json file from the user's workspace folder:\n${packageJSONText}\n`, (err) => {console.log(err)});
-                                    // // ---> OUTPUT LOGGER <--- //
-                                    // fs.appendFile(path.join(rootDir, 'YOLO.txt'), `This is what our readFile function (line 72) returns when it attempts to retrieve (line 82) the "storybook" script from  your app's package.json:\n${retrievedScript}\n`, (err) => {console.log(err)});
-                                    //iterate through that text string and parse out important flags
-                                    //it is more helpful to split it into an array separated by whitespace to grab these
-                                    let retrievedScriptArray = storybookScript.split(' ');
-                                    for (let i = 0; i < retrievedScriptArray.length; i++) {
-                                        //add flags
-                                        if (retrievedScriptArray[i] === '-p') {
-                                            PORT = parseInt(retrievedScriptArray[i + 1]);
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                    }
-                });
+                dependencyFound = true;
             }
         });
+        if (dependencyFound === true && foundSb === false) {
+            //check to see if a storybook node process is already running
+            ps.lookup({
+                command: 'node',
+                psargs: 'ux'
+            }, (err, resultList) => {
+                if (err) {
+                    vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
+                }
+                else {
+                    //if the process lookup was able to find running processes, iterate through to review them
+                    resultList.forEach((process) => {
+                        // ---> OUTPUT LOGGER <--- //
+                        fs.writeFile(path.join(rootDir, 'YOLO.txt'), `YOLO, fam:\n\n\n\n`, (err) => { console.log(`Couldn't output process information to YOLO.txt: ${err}`); });
+                        vscode.window.showInformationMessage('Check YOLO.txt for output information');
+                        //check if any running processes are using the start-storybook script
+                        if (process.arguments[0].includes('storybook')) {
+                            foundSb = true;
+                            //stretch goal: check for multiple instances of storybook and reconcile
+                            //if so, extract port number and use that value to populate the webview with that contents
+                            const pFlagIndex = process.arguments.indexOf('-p');
+                            if (pFlagIndex !== -1) {
+                                PORT = Number(process.arguments[pFlagIndex + 1]);
+                            }
+                            // ---> OUTPUT LOGGER <--- //
+                            fs.appendFile(path.join(rootDir, 'YOLO.txt'), `This process matches for 'storybook' search string:\n\n
+							PID: ${process.pid}, COMMAND:${process.command}, ARGUMENTS: ${process.arguments}\n\nPORT has been assigned to: ${PORT}`, (err) => { console.log(err); });
+                        }
+                    });
+                }
+            });
+        }
+        ;
+        if (dependencyFound === true && foundSb === false) {
+            //if no processes match 'storybook', we will have to spin up the storybook server
+            //starts by extracting the existing storybook script in the package.json
+            fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
+                if (err) {
+                    vscode.window.showErrorMessage(`Does this root folder contain a "package.json" file?`);
+                }
+                else {
+                    //enter the package.JSON file and retrieve its contents as a string
+                    let packageJSON = JSON.parse(data.toString());
+                    let storybookScript = packageJSON.scripts.storybook;
+                    // // ---> OUTPUT LOGGER <--- //
+                    // fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Here is the JSON parsed version:\n
+                    // ${packageJSON.scripts}\n
+                    // ${storybookScript}`, (err) => {console.log(err)});
+                    //iterate through that text string and parse out important flags
+                    //it is more helpful to split it into an array separated by whitespace to grab these
+                    let retrievedScriptArray = storybookScript.split(' ');
+                    for (let i = 0; i < retrievedScriptArray.length; i++) {
+                        //add flags
+                        if (retrievedScriptArray[i] === '-p') {
+                            PORT = parseInt(retrievedScriptArray[i + 1]);
+                        }
+                    }
+                }
+            });
+            //execute Ola's logic to launch the child process, passing rootDir as an options arg
+        }
         //set the extension context equal to "aesop is running"
         // vscode.commands.executeCommand("setContext", "is-running-aesop", true);
         //still inside our disposable variable, let's create the webview panel
         const panel = vscode.window.createWebviewPanel('aesop-sb', 'Aesop', vscode.ViewColumn.Two, {
             enableCommandUris: true,
             enableScripts: true,
+            portMapping: [
+                { webviewPort: PORT, extensionHostPort: PORT }
+            ]
         });
         panel.webview.html =
-            `<!DOCTYPE html>
+            `
+		<!DOCTYPE html>
 			<html lang="en">
 				<head>
 					<meta charset="UTF-8">
@@ -1123,9 +1129,10 @@ function activate(context) {
 					<title>Aesop</title>
 				</head>
 				<body>
-					<iframe src="http://${host}:${PORT}/?path=/story/></iframe>
+					<iframe src="http://${host}:${PORT}/?path=/story/welcome--to-storybook></iframe>
 				</body>
-			</html>`;
+			</html>
+		`;
     });
     context.subscriptions.push(disposable);
 }
