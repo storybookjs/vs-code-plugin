@@ -18,8 +18,9 @@ export function activate(context: vscode.ExtensionContext) {
 		// server.listen(PORT);
 		
 		//create disposable variable type, registers awaken command & opens webview
+		let port;
+
 		let disposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
-			let port;
 			
 
 			ps.lookup({
@@ -34,19 +35,52 @@ export function activate(context: vscode.ExtensionContext) {
 				// also need to handle what to do if no error but no process running at all
 				//no process running also means story-book not running
 
-				resultList.forEach((process) => {
-				if (process.arguments[0].includes('start-storybook')) {
-					vscode.window.showInformationMessage("You have storybook currently running..!")
-					const sbProcess = process.arguments;
-					const sbPortFlag = '-p'
-					const indexOfP = sbProcess.indexOf(sbPortFlag);
-					if(indexOfP !== -1){
-					console.log(`current sb port: ${sbProcess[indexOfP+1]}`);
-					port = Number(`${sbProcess[indexOfP+1]}`)
-					}
-					console.log(`port from lookup is: `, port);
+				else {
+
+					let foundSb = false;
+
+					resultList.forEach((process) => {
+						if (process.arguments[0].includes('start-storybook')) {
+							vscode.window.showInformationMessage("You have storybook currently running..!")
+							const sbProcess = process.arguments;
+							const sbPortFlag = '-p'
+							const indexOfP = sbProcess.indexOf(sbPortFlag);
+							if(indexOfP !== -1){
+							console.log(`current sb port: ${sbProcess[indexOfP+1]}`);
+							port = Number(`${sbProcess[indexOfP+1]}`)
+							}
+							console.log(`port from lookup is: `, port);
+							foundSb = true;
+						}
+					});
+
+					if (foundSb === false) {
+						// run keith's logic to get the port;
+						// reassign to port to whatever port is from above
+
+						// spin up storybook
+						const runSb = spawn('npm', ['run', 'storybook', '--ci']);
+	
+						vscode.window.showInformationMessage("We are now running storybook for you!")
+	
+						runSb.stdout.on('data', (data) => {
+						console.log(`stdout: ${data}`);
+						});
+	
+						runSb.on('error', function(err) {
+							console.error(err);
+							process.exit(1);
+						});
+	
+						//This will make sure the child process is terminated on process exit
+						runSb.on('close', (code) => {
+							console.log(`child process exited with code ${code}`);
+						});
+		  
+						}
+				
 				}
-				});
+
 
 				const panel = vscode.window.createWebviewPanel(
 					'aesop-sb',

@@ -1027,6 +1027,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const vscode = __webpack_require__(/*! vscode */ "vscode");
 const url_1 = __webpack_require__(/*! url */ "url");
 const ps = __webpack_require__(/*! ps-node */ "./node_modules/ps-node/index.js");
+const { spawn } = __webpack_require__(/*! child_process */ "child_process");
 //port should be variable to listen for action in the user's active terminal
 const host = "localhost";
 // const server = express();
@@ -1043,22 +1044,43 @@ function activate(context) {
             command: 'node',
             psargs: 'ux',
         }, (err, resultList) => {
+            // need to handle what to do incase of an error
             if (err) {
                 throw new Error(err);
             }
-            resultList.forEach((process) => {
-                if (process.arguments[0].includes('start-storybook')) {
-                    console.log("You have storybook currently running..!");
-                    const sbProcess = process.arguments;
-                    const sbPortFlag = '-p';
-                    const indexOfP = sbProcess.indexOf(sbPortFlag);
-                    if (indexOfP !== -1) {
-                        console.log(`current sb port: ${sbProcess[indexOfP + 1]}`);
-                        port = Number(`${sbProcess[indexOfP + 1]}`);
+            // also need to handle what to do if no error but no process running at all
+            //no process running also means story-book not running
+            else {
+                resultList.forEach((process) => {
+                    if (process.arguments[0].includes('start-storybook')) {
+                        vscode.window.showInformationMessage("You have storybook currently running..!");
+                        const sbProcess = process.arguments;
+                        const sbPortFlag = '-p';
+                        const indexOfP = sbProcess.indexOf(sbPortFlag);
+                        if (indexOfP !== -1) {
+                            console.log(`current sb port: ${sbProcess[indexOfP + 1]}`);
+                            port = Number(`${sbProcess[indexOfP + 1]}`);
+                        }
+                        console.log(`port from lookup is: `, port);
                     }
-                    console.log(`port from lookup is: `, port);
-                }
-            });
+                });
+            }
+            // if storybook is not running
+            // else {
+            // 	const runSb = spawn('npm', ['run', 'storybook', '--ci']);
+            // 	console.log("We are now running storybook for you!")
+            // 	runSb.stdout.on('data', (data) => {
+            // 	console.log(`stdout: ${data}`);
+            // 	});
+            // 	runSb.on('error', function(err) {
+            // 		console.error(err);
+            // 		process.exit(1);
+            // 	});
+            // 	//This will make sure the child process is terminated on process exit
+            // 	runSb.on('close', (code) => {
+            // 		console.log(`child process exited with code ${code}`);
+            // 	});
+            // }
             const panel = vscode.window.createWebviewPanel('aesop-sb', 'Aesop', vscode.ViewColumn.Three, {
                 enableScripts: true,
                 localResourceRoots: [vscode.Uri.file(context.extensionPath)]
@@ -1136,8 +1158,6 @@ function activate(context) {
 		scriptGlob: ${scriptGlob.toString()}
 		`);
     });
-    // disposable = vscode.commands.registerCommand('extension.startStorybookPreview', ()=> {
-    // })
     context.subscriptions.push(disposable);
 }
 exports.activate = activate;
