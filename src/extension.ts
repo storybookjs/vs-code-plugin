@@ -3,49 +3,83 @@ import * as express from 'express';
 import { resolveCliPathFromVSCodeExecutablePath } from 'vscode-test';
 import { pathToFileURL, fileURLToPath } from 'url';
 
+const ps = require('ps-node')
+const { spawn } = require('child_process');
+
 //port should be variable to listen for action in the user's active terminal
-const port = 9009;
 const host = "localhost"
 // const server = express();
 
 export function activate(context: vscode.ExtensionContext) {
 	// server.get('/', (req, res) => {
-	// 	vscode.window.showInformationMessage('Aesop server online');
-	// 	res.end();
-	// });
-	// server.listen(PORT);
-
-	//create disposable variable type, registers awaken command & opens webview
-	let disposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
+		// 	vscode.window.showInformationMessage('Aesop server online');
+		// 	res.end();
+		// });
+		// server.listen(PORT);
 		
-		const panel = vscode.window.createWebviewPanel(
-			'aesop-sb',
-			'Aesop',
-			vscode.ViewColumn.Three,
-			{
-				enableScripts: true,
-				localResourceRoots: [vscode.Uri.file(context.extensionPath)]
-			}
-		);
+		//create disposable variable type, registers awaken command & opens webview
+		let disposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
+			let port;
+			
 
-		panel.webview.html = `<!DOCTYPE html>
-		<html lang="en">
-		<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Aesop</title>
-		<style>
-		html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
-		body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
-		</style>
-		</head>
-		<body id="root">
-	
-		<iframe src="http://${host}:${port}/?path=/story/task--default" width="100%" height="500"></iframe>
-		<p>If you're seeing this, something is wrong :) (can't find server at ${host}:${port})</p>
-		<span>Let's put some content here v55</span>
-		</body>
-		</html>`;
+			ps.lookup({
+				command: 'node',
+				psargs: 'ux',
+			}, (err, resultList) => {
+				// need to handle what to do incase of an error
+				if (err) {
+				throw new Error(err);
+				}
+				
+				// also need to handle what to do if no error but no process running at all
+				//no process running also means story-book not running
+
+				resultList.forEach((process) => {
+				if (process.arguments[0].includes('start-storybook')) {
+					vscode.window.showInformationMessage("You have storybook currently running..!")
+					const sbProcess = process.arguments;
+					const sbPortFlag = '-p'
+					const indexOfP = sbProcess.indexOf(sbPortFlag);
+					if(indexOfP !== -1){
+					console.log(`current sb port: ${sbProcess[indexOfP+1]}`);
+					port = Number(`${sbProcess[indexOfP+1]}`)
+					}
+					console.log(`port from lookup is: `, port);
+				}
+				});
+
+				const panel = vscode.window.createWebviewPanel(
+					'aesop-sb',
+					'Aesop',
+					vscode.ViewColumn.Three,
+					{
+						enableScripts: true,
+						localResourceRoots: [vscode.Uri.file(context.extensionPath)]
+					}
+				);
+
+				
+				panel.webview.html = `<!DOCTYPE html>
+				<html lang="en">
+				<head>
+				<meta charset="UTF-8">
+				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<title>Aesop</title>
+				<style>
+				html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
+				body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
+				</style>
+				</head>
+				<body id="root">
+			
+				<iframe src="http://${host}:${port}/?path=/story/task--default" width="100%" height="500"></iframe>
+				<p>If you're seeing this, something is wrong :) (can't find server at ${host}:${port})</p>
+				<span>Let's put some content here v55</span>
+				</body>
+				</html>`;
+
+			});
+
 
 		vscode.window.showInformationMessage(`Aesop is ready to chronicle your stories!`);
 	});
