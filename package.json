@@ -19,7 +19,7 @@
 	"contributes": {
 		"taskDefinitions": [
 			{
-					"type": "runStorybook"
+				"type": "runStorybook"
 			}
 		],
 		"commands": [
@@ -36,40 +36,40 @@
 			}
 		],
 		"configuration": {
-      "type": "object",
-      "title": "Configuration",
-      "properties": {
-        "aesop.port": {
-          "type": "number",
-          "default": 8509,
-          "description": "Port number"
-        },
-        "aesop.host": {
-          "type": "string",
-          "default": "localhost",
-          "description": "Host address"
-        },
-        "aesop.storyRegex": {
-          "type": "string",
-          "default": "**/*.story.*",
-          "description": "A regular expression that picks up story files in your project"
-        },
-        "aesop.storybookFilterRegex": {
-          "type": "string",
-          "default": ".",
-          "description": "A regular expression to filter stories appearing in the explorer view"
-        }
-      }
-    },
-    "views": {
-      "explorer": [
-        {
-          "id": "storybook",
-          "name": "Storybook",
-          "when": "is-running-aesop"
-        }
-      ]
-    }
+			"type": "object",
+			"title": "Configuration",
+			"properties": {
+				"aesop.port": {
+					"type": "number",
+					"default": 8509,
+					"description": "Port number"
+				},
+				"aesop.host": {
+					"type": "string",
+					"default": "localhost",
+					"description": "Host address"
+				},
+				"aesop.storyRegex": {
+					"type": "string",
+					"default": "**/*.story.*",
+					"description": "A regular expression that picks up story files in your project"
+				},
+				"aesop.storybookFilterRegex": {
+					"type": "string",
+					"default": ".",
+					"description": "A regular expression to filter stories appearing in the explorer view"
+				}
+			}
+		},
+		"views": {
+			"explorer": [
+				{
+					"id": "storybook",
+					"name": "Storybook",
+					"when": "is-running-aesop"
+				}
+			]
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "webpack --mode production",
