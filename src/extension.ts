@@ -3,8 +3,14 @@ import * as express from 'express';
 import { resolveCliPathFromVSCodeExecutablePath } from 'vscode-test';
 import { pathToFileURL, fileURLToPath } from 'url';
 
-const ps = require('ps-node')
 const { spawn } = require('child_process');
+const EventEmitter = require('events');
+
+class MyEmitter extends EventEmitter {}
+
+const myEmitter = new MyEmitter()
+
+const ps = require('ps-node')
 
 //port should be variable to listen for action in the user's active terminal
 const host = "localhost"
@@ -18,9 +24,11 @@ export function activate(context: vscode.ExtensionContext) {
 		// server.listen(PORT);
 		
 		//create disposable variable type, registers awaken command & opens webview
-		let port;
+		let port = null;
 
 		let disposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
+
+			const root = fileURLToPath(vscode.workspace.workspaceFolders[0].uri.toString(true));
 			
 
 			ps.lookup({
@@ -51,71 +59,89 @@ export function activate(context: vscode.ExtensionContext) {
 							}
 							console.log(`port from lookup is: `, port);
 							foundSb = true;
+							myEmitter.emit('sb_on')
 						}
 					});
 
 					if (foundSb === false) {
-						// run keith's logic to get the port;
-						// reassign to port to whatever port is from above
 
 						// spin up storybook
-						const runSb = spawn('npm', ['run', 'storybook', '--ci']);
-	
+						const runSb = spawn('npm', ['run', 'storybook'], {cwd: root});
+						// vscode.window.showInformationMessage(`This is runSb: `, runSb)
+
 						vscode.window.showInformationMessage("We are now running storybook for you!")
-	
-						runSb.stdout.on('data', (data) => {
-						console.log(`stdout: ${data}`);
-						});
-	
+						
 						runSb.on('error', function(err) {
-							console.error(err);
+							vscode.window.showInformationMessage(err);
 							process.exit(1);
 						});
-	
+						
+						runSb.stdout.setEncoding('utf8')
+
+						runSb.stdout.on('data', (data) => {
+						console.log(`stdout: ${data}`);
+						let str = data.toString(), lines = str.split(" ");
+
+						const sbPortFlag = '-p';
+
+						if (lines.includes(sbPortFlag)){
+							const indexOfP = lines.indexOf(sbPortFlag);
+							// console.log(`This is indexOfP: `, indexOfP);
+							if(indexOfP !== -1) {
+								port = parseInt(lines[indexOfP + 1])
+								vscode.window.showInformationMessage(`storybook is now running on port:`, (typeof port), port);
+								myEmitter.emit('sb_on')
+							}
+						}
+
+						});
+
 						//This will make sure the child process is terminated on process exit
 						runSb.on('close', (code) => {
-							console.log(`child process exited with code ${code}`);
+						console.log(`child process exited with code ${code}`);
 						});
 		  
 						}
 				
 				}
 
-
-				const panel = vscode.window.createWebviewPanel(
-					'aesop-sb',
-					'Aesop',
-					vscode.ViewColumn.Three,
-					{
-						enableScripts: true,
-						localResourceRoots: [vscode.Uri.file(context.extensionPath)]
-					}
-				);
-
+				myEmitter.on('sb_on', ()=>{
+					
+					const panel = vscode.window.createWebviewPanel(
+						'aesop-sb',
+						'Aesop',
+						vscode.ViewColumn.Three,
+						{
+							enableScripts: true,
+							localResourceRoots: [vscode.Uri.file(context.extensionPath)]
+						}
+					);
+	
+					
+					panel.webview.html = `<!DOCTYPE html>
+					<html lang="en">
+					<head>
+					<meta charset="UTF-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+					<title>Aesop</title>
+					<style>
+					html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
+					body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
+					</style>
+					</head>
+					<body id="root">
 				
-				panel.webview.html = `<!DOCTYPE html>
-				<html lang="en">
-				<head>
-				<meta charset="UTF-8">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<title>Aesop</title>
-				<style>
-				html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
-				body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
-				</style>
-				</head>
-				<body id="root">
-			
-				<iframe src="http://${host}:${port}/?path=/story/task--default" width="100%" height="500"></iframe>
-				<p>If you're seeing this, something is wrong :) (can't find server at ${host}:${port})</p>
-				<span>Let's put some content here v55</span>
-				</body>
-				</html>`;
-
-			});
-
-
-		vscode.window.showInformationMessage(`Aesop is ready to chronicle your stories!`);
+					<iframe src="http://${host}:${port}/?path=/story/task--default" width="100%" height="500"></iframe>
+					<p>If you're seeing this, something is wrong :) (can't find server at ${host}:${port})</p>
+					<span>Let's put some content here v61</span>
+					</body>
+					</html>`;
+	
+				});
+	
+	
+			vscode.window.showInformationMessage(`Aesop is ready to chronicle your stories!`);
+			})
 	});
 	
 	context.subscriptions.push(disposable);
