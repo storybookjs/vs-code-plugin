@@ -1029,19 +1029,9 @@ const url_1 = __webpack_require__(/*! url */ "url");
 const path = __webpack_require__(/*! path */ "path");
 const fs = __webpack_require__(/*! fs */ "fs");
 const ps = __webpack_require__(/*! ps-node */ "./node_modules/ps-node/index.js");
-let PORT = 6006;
-const host = 'localhost';
-// import * as express from 'express';
-// import { resolveCliPathFromVSCodeExecutablePath } from 'vscode-test';
-// const server = express();
 function activate(context) {
-    // server.get('/', (req, res) => {
-    // 	vscode.window.showInformationMessage('Aesop server online');
-    // 	res.end();
-    // });
-    // server.listen(PORT);
-    //set the extension context equal to "aesop is running"
-    vscode.commands.executeCommand("setContext", "is-running-aesop", true);
+    let PORT = 6006;
+    const host = 'localhost';
     //create disposable variable type, registers awaken command & opens webview
     let disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
         //define a path to the root working directory of the user
@@ -1062,54 +1052,98 @@ function activate(context) {
                         vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
                     }
                     else {
+                        let foundSb = false;
                         //if the process lookup was able to find running processes, iterate through to review them
-                        //potential problem: we may also need to account for running processes given no port flag
                         resultList.forEach((process) => {
                             // ---> OUTPUT LOGGER <--- //
                             fs.writeFile(path.join(rootDir, 'YOLO.txt'), `Here is the JSON-stringified version of a process:\n${JSON.stringify(process)}\n`, (err) => { console.log(`Couldn't output process information to YOLO.txt: ${err}`); });
                             vscode.window.showInformationMessage('Check YOLO.txt for output information');
                             //check if any running processes are using the start-storybook script
                             if (process.arguments[0].includes('storybook')) {
+                                foundSb = true;
                                 //stretch goal: check for multiple instances of storybook and reconcile
-                                // ---> OUTPUT LOGGER <--- //
-                                fs.appendFile(path.join(rootDir, 'YOLO.txt'), `This process matches for 'storybook'search string:\n
-								PID: ${process.pid}, COMMAND:${process.command}, ARGUMENTS: ${process.arguments}\n`, (err) => { console.log(err); });
                                 //if so, extract port number and use that value to populate the webview with that contents
-                                const sbProcess = process.arguments;
-                                const portFlag = '-p';
-                                const pFlagIndex = sbProcess.indexOf(portFlag);
+                                const pFlagIndex = process.arguments.indexOf('-p');
                                 if (pFlagIndex !== -1) {
                                     PORT = Number(process.arguments[pFlagIndex + 1]);
                                 }
+                                // ---> OUTPUT LOGGER <--- //
+                                fs.appendFile(path.join(rootDir, 'YOLO.txt'), `This process matches for 'storybook'search string:\n
+								PID: ${process.pid}, COMMAND:${process.command}, ARGUMENTS: ${process.arguments}\n`, (err) => { console.log(err); });
+                            }
+                        });
+                        if (foundSb === false) {
+                            //if no processes match 'storybook', we will have to spin up the storybook server
+                            //starts by extracting the existing storybook script in the package.json
+                            fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
+                                if (err) {
+                                    vscode.window.showErrorMessage(`Does this root folder contain a "package.json" file?`);
+                                }
                                 else {
-                                    //if no processes match 'storybook', we will have to spin up the storybook server
-                                    //starts by extracting the existing storybook script in the package.json
-                                    fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
-                                        if (err) {
-                                            vscode.window.showErrorMessage(`Does this root folder contain a "package.json" file?`);
+                                    //enter the package.JSON file and retrieve its contents as a string
+                                    let packageJSONText = JSON.parse(data.toString());
+                                    let storybookScript = packageJSONText.scripts.storybook;
+                                    // // ---> OUTPUT LOGGER <--- //
+                                    // fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Here is the JSON parsed version:\n
+                                    // ${packageJSONText.scripts}\n
+                                    // ${packageJSONText.scripts.storybook}`, (err) => {console.log(err)});
+                                    // // ---> OUTPUT LOGGER <--- //
+                                    // fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Here is the full contents of the package.json file from the user's workspace folder:\n${packageJSONText}\n`, (err) => {console.log(err)});
+                                    // // ---> OUTPUT LOGGER <--- //
+                                    // fs.appendFile(path.join(rootDir, 'YOLO.txt'), `This is what our readFile function (line 72) returns when it attempts to retrieve (line 82) the "storybook" script from  your app's package.json:\n${retrievedScript}\n`, (err) => {console.log(err)});
+                                    //iterate through that text string and parse out important flags
+                                    //it is more helpful to split it into an array separated by whitespace to grab these
+                                    let retrievedScriptArray = storybookScript.split(' ');
+                                    for (let i = 0; i < retrievedScriptArray.length; i++) {
+                                        //add flags
+                                        if (retrievedScriptArray[i] === '-p') {
+                                            PORT = parseInt(retrievedScriptArray[i + 1]);
                                         }
-                                        else {
-                                            //enter the package.JSON file and retrieve its contents as a string
-                                            let packageJSONText = data.toString();
-                                            // ---> OUTPUT LOGGER <--- //
-                                            fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Here is the full contents of the package.json file from the user's workspace folder:\n${packageJSONText}\n`, (err) => { console.log(err); });
-                                            //find where the "storybook" script is defined
-                                            let targetScriptStartIndex = packageJSONText.indexOf(`\"storybook\"\:`) + 12;
-                                            //retrieve the value (i.e. the entire line of text) of the "storybook" script
-                                            let retrievedScript = packageJSONText.slice(targetScriptStartIndex, packageJSONText.indexOf(vscode.EndOfLine.toString()));
-                                            // ---> OUTPUT LOGGER <--- //
-                                            fs.appendFile(path.join(rootDir, 'YOLO.txt'), `This is what our readFile function (line 72) returns when it attempts to retrieve (line 82) the "storybook" script from  your app's package.json:\n${retrievedScript}\n`, (err) => { console.log(err); });
-                                            //iterate through that text string and parse out important flags
-                                            //it is more helpful to split it into an array separated by whitespace to grab these
-                                            let retrievedScriptAsArray = retrievedScript.split(' ');
-                                            for (let i = 0; i < retrievedScriptAsArray.length; i++) {
-                                                //add flags
-                                                if (retrievedScriptAsArray[i] === '-p') {
-                                                    PORT = Number(retrievedScriptAsArray[i + 1]);
-                                                }
-                                            }
-                                            /*
-                                            vscode.tasks.registerTaskProvider('runStorybook', {
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+        //set the extension context equal to "aesop is running"
+        // vscode.commands.executeCommand("setContext", "is-running-aesop", true);
+        //still inside our disposable variable, let's create the webview panel
+        const panel = vscode.window.createWebviewPanel('aesop-sb', 'Aesop', vscode.ViewColumn.Two, {
+            enableCommandUris: true,
+            enableScripts: true,
+        });
+        panel.webview.html =
+            `<!DOCTYPE html>
+			<html lang="en">
+				<head>
+					<meta charset="UTF-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+					<title>Aesop</title>
+				</head>
+				<body>
+					<iframe src="http://${host}:${PORT}/?path=/story/></iframe>
+				</body>
+			</html>`;
+    });
+    context.subscriptions.push(disposable);
+}
+exports.activate = activate;
+;
+function deactivate() {
+}
+exports.deactivate = deactivate;
+/*
+to-do:
+    figure out how to iteratively call sb scripts within our webview
+    webview messages / scripts to reload
+    figure out how to use a tsx rule in webpack to execute scripts
+    signal babel to interpret this block as tsx, e.g. something like: //@tsx babel//
+
+
+    
+                        vscode.tasks.registerTaskProvider('runStorybook', {
                                                 provideTasks(token?: vscode.CancellationToken) {
                                                         return [
                                                                 new vscode.Task({type: 'runStorybook'}, vscode.TaskScope.Workspace,
@@ -1139,51 +1173,6 @@ function activate(context) {
 
                                             //should this just be an active terminal/shellExecution?
                                             const virtualTerminal = vscode.window.createTerminal({name: 'sb-runner', pty});
-                                            */
-                                        }
-                                    });
-                                }
-                            }
-                        });
-                    }
-                });
-            }
-        });
-        //still inside our disposable variable, let's create the webview panel
-        const panel = vscode.window.createWebviewPanel('aesop-sb', 'Aesop', vscode.ViewColumn.Two, {
-            enableCommandUris: true,
-            enableScripts: true,
-            portMapping: [
-                { webviewPort: PORT, extensionHostPort: PORT }
-            ]
-        });
-        panel.webview.html =
-            `<!DOCTYPE html>
-			<html lang="en">
-				<head>
-					<meta charset="UTF-8">
-					<meta name="viewport" content="width=device-width, initial-scale=1.0">
-					<title>Aesop</title>
-				</head>
-				<body>
-					<iframe src="http://${host}:${PORT}/?path=/story/></iframe>
-				</body>
-			</html>`;
-    });
-    //closes disposable
-    context.subscriptions.push(disposable);
-}
-exports.activate = activate;
-;
-function deactivate() {
-}
-exports.deactivate = deactivate;
-/*
-to-do:
-    figure out how to iteratively call sb scripts within our webview
-    webview messages / scripts to reload
-    figure out how to use a tsx rule in webpack to execute scripts
-    signal babel to interpret this block as tsx, e.g. something like: //@tsx babel//
 
 //THIS WORKS, but we have no access to the DOM inside our webview//
     //now let's read SB's outputted index.html file, and parse out what we need

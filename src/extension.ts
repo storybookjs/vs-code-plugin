@@ -4,19 +4,10 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as ps from 'ps-node';
 
-let PORT = 6006;
-const host = 'localhost';
-
-// import * as express from 'express';
-// import { resolveCliPathFromVSCodeExecutablePath } from 'vscode-test';
-// const server = express();
-
 export function activate(context: vscode.ExtensionContext) {
-	// server.get('/', (req, res) => {
-	// 	vscode.window.showInformationMessage('Aesop server online');
-	// 	res.end();
-	// });
-	// server.listen(PORT);
+
+	let PORT = 6006;
+	const host = 'localhost';
 
   //create disposable variable type, registers awaken command & opens webview
 	let disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
@@ -26,7 +17,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 		//check first to ensure that Storybook has been depended into the current working directory
 		fs.access(path.join(rootDir, '/node_modules/@storybook'), (err) => {
+
 			//if the filepath isn't found, show the user what Aesop is reading as the root path
+
 			if (err) {
 				vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder, ${rootDir}`);
 			}	else {
@@ -38,8 +31,8 @@ export function activate(context: vscode.ExtensionContext) {
 					if (err){
 						vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
 					} else {
+						let foundSb = false;
 						//if the process lookup was able to find running processes, iterate through to review them
-						//potential problem: we may also need to account for running processes given no port flag
 						resultList.forEach((process) => {
 
 							// ---> OUTPUT LOGGER <--- //
@@ -50,86 +43,50 @@ export function activate(context: vscode.ExtensionContext) {
 
 							//check if any running processes are using the start-storybook script
 							if(process.arguments[0].includes('storybook')){
-
+								foundSb = true;
 								//stretch goal: check for multiple instances of storybook and reconcile
+								//if so, extract port number and use that value to populate the webview with that contents
+							
+								const pFlagIndex = process.arguments.indexOf('-p');
+								if (pFlagIndex !== -1){
+									PORT = Number(process.arguments[pFlagIndex+1]);
+								}
 
 								// ---> OUTPUT LOGGER <--- //
 								fs.appendFile(path.join(rootDir, 'YOLO.txt'), `This process matches for 'storybook'search string:\n
 								PID: ${process.pid}, COMMAND:${process.command}, ARGUMENTS: ${process.arguments}\n`, (err) => {console.log(err)});
-
-								//if so, extract port number and use that value to populate the webview with that contents
-								const pFlagIndex = process.arguments.indexOf('-p');
-								if (pFlagIndex !== -1){
-									PORT = Number(process.arguments[pFlagIndex+1]);
-								} else {
-									//if no processes match 'storybook', we will have to spin up the storybook server
-									//starts by extracting the existing storybook script in the package.json
-									fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
-										if (err){
-											vscode.window.showErrorMessage(`Does this root folder contain a "package.json" file?`);
-										}	else {
-											//enter the package.JSON file and retrieve its contents as a string
-											let packageJSONText = data.toString();
-
-											// ---> OUTPUT LOGGER <--- //
-											fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Here is the full contents of the package.json file from the user's workspace folder:\n${packageJSONText}\n`, (err) => {console.log(err)});
-
-											//find where the "storybook" script is defined
-											let targetScriptStartIndex = packageJSONText.indexOf(`\"storybook\"\:`)+12;
-
-											//retrieve the value (i.e. the entire line of text) of the "storybook" script
-											let retrievedScript = packageJSONText.slice(targetScriptStartIndex, packageJSONText.indexOf(vscode.EndOfLine.toString()));
-
-											// ---> OUTPUT LOGGER <--- //
-											fs.appendFile(path.join(rootDir, 'YOLO.txt'), `This is what our readFile function (line 72) returns when it attempts to retrieve (line 82) the "storybook" script from  your app's package.json:\n${retrievedScript}\n`, (err) => {console.log(err)});
-
-											//iterate through that text string and parse out important flags
-											//it is more helpful to split it into an array separated by whitespace to grab these
-											let retrievedScriptAsArray = retrievedScript.split(' ');
-											for (let i = 0; i < retrievedScriptAsArray.length; i++){
-												//add flags
-												if (retrievedScriptAsArray[i] === '-p'){
-													PORT = Number(retrievedScriptAsArray[i+1]);
-												}
-											}
-
-											/*
-											vscode.tasks.registerTaskProvider('runStorybook', {
-												provideTasks(token?: vscode.CancellationToken) {
-														return [
-																new vscode.Task({type: 'runStorybook'}, vscode.TaskScope.Workspace,
-																		"Aesop Chronicle", "aesop", new vscode.ShellExecution(`npm run storybook --ci`))
-														];
-												},
-												resolveTask(task: vscode.Task, token?: vscode.CancellationToken) {
-														return task;
-												}
-											});
-
-											//define the script text to execute to the virtual terminal instance
-											const bootScript = `storybook --ci`;
-											const bootStorybook = new vscode.ProcessExecution(bootScript, {cwd: rootDir});
-
-											//now create a virtual terminal and execute our special npm script for it
-											//this first requires creating an eventEmitter that will fire that script
-											const scriptEmitter = new vscode.EventEmitter<string>();
-							
-											//we also define a slave process Pseudoterminal (allowing Aesop to control the terminal)
-											const pty: vscode.Pseudoterminal = {
-												onDidWrite: scriptEmitter.event,
-												open: () =>	scriptEmitter.fire(bootScript),
-												close: () => {},
-												handleInput: data => new vscode.ShellExecution(data)
-											};
-
-											//should this just be an active terminal/shellExecution?
-											const virtualTerminal = vscode.window.createTerminal({name: 'sb-runner', pty});
-											*/
-										}
-									})
-								}
+								
 							}
 						})
+
+						if (foundSb === false){
+								//if no processes match 'storybook', we will have to spin up the storybook server
+								//starts by extracting the existing storybook script in the package.json
+								fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
+									if (err){
+										vscode.window.showErrorMessage(`Does this root folder contain a "package.json" file?`);
+									}	else {
+										//enter the package.JSON file and retrieve its contents as a string
+										let packageJSONText = JSON.parse(data.toString());
+										let storybookScript = packageJSONText.scripts.storybook;
+
+										// ---> OUTPUT LOGGER <--- //
+										fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Here is the JSON parsed version:\n
+										${packageJSONText.scripts}\n
+										${storybookScript}`, (err) => {console.log(err)});
+
+										//iterate through that text string and parse out important flags
+										//it is more helpful to split it into an array separated by whitespace to grab these
+										let retrievedScriptArray = storybookScript.split(' ');
+										for (let i = 0; i < retrievedScriptArray.length; i++){
+											//add flags
+											if (retrievedScriptArray[i] === '-p'){
+												PORT = parseInt(retrievedScriptArray[i+1]);
+											}
+										}
+									}
+								})
+						}
 					}
 				})
 			}
@@ -179,6 +136,39 @@ to-do:
 	webview messages / scripts to reload
 	figure out how to use a tsx rule in webpack to execute scripts
 	signal babel to interpret this block as tsx, e.g. something like: //@tsx babel//
+
+
+	
+						vscode.tasks.registerTaskProvider('runStorybook', {
+												provideTasks(token?: vscode.CancellationToken) {
+														return [
+																new vscode.Task({type: 'runStorybook'}, vscode.TaskScope.Workspace,
+																		"Aesop Chronicle", "aesop", new vscode.ShellExecution(`npm run storybook --ci`))
+														];
+												},
+												resolveTask(task: vscode.Task, token?: vscode.CancellationToken) {
+														return task;
+												}
+											});
+
+											//define the script text to execute to the virtual terminal instance
+											const bootScript = `storybook --ci`;
+											const bootStorybook = new vscode.ProcessExecution(bootScript, {cwd: rootDir});
+
+											//now create a virtual terminal and execute our special npm script for it
+											//this first requires creating an eventEmitter that will fire that script
+											const scriptEmitter = new vscode.EventEmitter<string>();
+							
+											//we also define a slave process Pseudoterminal (allowing Aesop to control the terminal)
+											const pty: vscode.Pseudoterminal = {
+												onDidWrite: scriptEmitter.event,
+												open: () =>	scriptEmitter.fire(bootScript),
+												close: () => {},
+												handleInput: data => new vscode.ShellExecution(data)
+											};
+
+											//should this just be an active terminal/shellExecution?
+											const virtualTerminal = vscode.window.createTerminal({name: 'sb-runner', pty});
 
 //THIS WORKS, but we have no access to the DOM inside our webview//
 	//now let's read SB's outputted index.html file, and parse out what we need
