@@ -12,18 +12,18 @@ const myEmitter = new MyEmitter()
 
 const ps = require('ps-node')
 
-//port should be variable to listen for action in the user's active terminal
+//declare then host variable for launching storybook
 const host = "localhost"
-// const server = express();
 
 export function activate(context: vscode.ExtensionContext) {
+	// declare port and set to null => port to be changed later
 		let port = null;
 
 		let disposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
-
+			// grab the workspace root folder
 			const root = fileURLToPath(vscode.workspace.workspaceFolders[0].uri.toString(true));
 			
-
+			// look up currently running processes
 			ps.lookup({
 				command: 'node',
 				psargs: 'ux',
@@ -37,7 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
 				//no process running also means story-book not running
 
 				else {
-
+					// set found storybook to false
 					let foundSb = false;
 
 					resultList.forEach((process) => {
@@ -51,35 +51,36 @@ export function activate(context: vscode.ExtensionContext) {
 							port = Number(`${sbProcess[indexOfP+1]}`)
 							}
 							console.log(`port from lookup is: `, port);
+							// change found storybook to true
 							foundSb = true;
+							// event emitter will invoke the create webview function 
 							myEmitter.emit('sb_on')
 						}
 					});
-
+					// check if found storybook is still false => no storybook running
 					if (foundSb === false) {
 
 						// spin up storybook
 						const runSb = spawn('npm', ['run', 'storybook'], {cwd: root});
-						// vscode.window.showInformationMessage(`This is runSb: `, runSb)
-
+				
 						vscode.window.showInformationMessage("We are now running storybook for you!")
-						
+						// if error running sb throw an error
 						runSb.on('error', function(err) {
 							vscode.window.showInformationMessage(err);
 							process.exit(1);
 						});
 						
 						runSb.stdout.setEncoding('utf8')
-
+						// grab the stdout output
 						runSb.stdout.on('data', (data) => {
 						console.log(`stdout: ${data}`);
 						let str = data.toString(), lines = str.split(" ");
-
+							// declare a variable for the port flag
 						const sbPortFlag = '-p';
-
+							// check if the port flag is in the stdout output
 						if (lines.includes(sbPortFlag)){
 							const indexOfP = lines.indexOf(sbPortFlag);
-							// console.log(`This is indexOfP: `, indexOfP);
+							// if port flag is found then grab the port which is in the next index
 							if(indexOfP !== -1) {
 								port = parseInt(lines[indexOfP + 1])
 								vscode.window.showInformationMessage(`storybook is now running on port:`, port);
@@ -97,7 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
 						}
 				
 				}
-
+				// event emitter to create webview panel
 				myEmitter.on('sb_on', ()=>{
 					
 					const panel = vscode.window.createWebviewPanel(
@@ -138,15 +139,7 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	
 	context.subscriptions.push(disposable);
-
-	// to-do:
-	// figure out how to launch dev remote host
-	// figure out how to iteratively call sb script
-	// webview messages / scripts
-	// use retrieved info to fill out our HTML template inside the webview
-	// figure out how to use a tsx rule in webpack
-	// signal to babel to interpret this block as tsx, e.g.
-	// something like: @ tsx babel// (to determine syntax)
+	
 
 	disposable = vscode.commands.registerCommand('extension.getStories', () => {
 		//build a command that retrieves Storybook files on startup
