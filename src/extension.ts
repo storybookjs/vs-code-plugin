@@ -91,6 +91,8 @@ export function activate(context: vscode.ExtensionContext) {
 						if (counter === 3) {
 						
 							// console.log('This is line 171:', lines[171]);
+							// TO DO: if they don't use the flag, port is going to undefined;
+							// need to run below logic to reassign port;
 							const path = lines[171];
 							// console.log(typeof path, path)
 							const regExp = (/[^0-9]/g);
