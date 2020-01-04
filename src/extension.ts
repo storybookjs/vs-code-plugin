@@ -3,9 +3,8 @@ import { fileURLToPath } from 'url';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as ps from 'ps-node';
-
-let PORT = 6006;
-const host = 'localhost';
+import { TreeViewProvider, StoryObject } from "./treeviewProvider"
+import { StoryPickerProvider, StorySelection } from "./picker-provider"
 
 // import * as express from 'express';
 // import { resolveCliPathFromVSCodeExecutablePath } from 'vscode-test';
@@ -18,6 +17,13 @@ export function activate(context: vscode.ExtensionContext) {
 	// });
 	// server.listen(PORT);
 
+	let PORT : number;
+	const host : string = 'localhost';
+
+	//set context to "aesop-awake"; this context enables all other commands
+  //TO-DO: figure out if this is a VSCode native command, what is the Boolean
+	vscode.commands.executeCommand("setContext", "aesop-awake", true)
+	
   //create disposable variable type, registers awaken command & opens webview
 	let disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
 
@@ -31,6 +37,29 @@ export function activate(context: vscode.ExtensionContext) {
 				vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder, ${rootDir}`);
 			}	else {
 				//check to see if a storybook node process is already running
+
+				/*
+				export async function isProcessRunning(processName: string): Promise<boolean> {
+					const cmd = (() => {
+						switch (process.platform) {
+							case 'win32': return `tasklist`
+							case 'darwin': return `ps -ax | grep ${processName}`
+							case 'linux': return `ps -A`
+							default: return false
+						}
+					})()
+
+					return new Promise((resolve, reject) => {
+						require('child_process').exec(cmd, (err: Error, stdout: string, stderr: string) => {
+							if (err) reject(err)
+
+							resolve(stdout.toLowerCase().indexOf(processName.toLowerCase()) > -1)
+						})
+					})
+				}
+				const running: boolean = await isProcessRunning('myProcess')
+
+				*/
 				ps.lookup({
 					command: 'node',
 					psargs: 'ux'
@@ -92,39 +121,6 @@ export function activate(context: vscode.ExtensionContext) {
 													PORT = Number(retrievedScriptAsArray[i+1]);
 												}
 											}
-
-											/*
-											vscode.tasks.registerTaskProvider('runStorybook', {
-												provideTasks(token?: vscode.CancellationToken) {
-														return [
-																new vscode.Task({type: 'runStorybook'}, vscode.TaskScope.Workspace,
-																		"Aesop Chronicle", "aesop", new vscode.ShellExecution(`npm run storybook --ci`))
-														];
-												},
-												resolveTask(task: vscode.Task, token?: vscode.CancellationToken) {
-														return task;
-												}
-											});
-
-											//define the script text to execute to the virtual terminal instance
-											const bootScript = `storybook --ci`;
-											const bootStorybook = new vscode.ProcessExecution(bootScript, {cwd: rootDir});
-
-											//now create a virtual terminal and execute our special npm script for it
-											//this first requires creating an eventEmitter that will fire that script
-											const scriptEmitter = new vscode.EventEmitter<string>();
-							
-											//we also define a slave process Pseudoterminal (allowing Aesop to control the terminal)
-											const pty: vscode.Pseudoterminal = {
-												onDidWrite: scriptEmitter.event,
-												open: () =>	scriptEmitter.fire(bootScript),
-												close: () => {},
-												handleInput: data => new vscode.ShellExecution(data)
-											};
-
-											//should this just be an active terminal/shellExecution?
-											const virtualTerminal = vscode.window.createTerminal({name: 'sb-runner', pty});
-											*/
 										}
 									})
 								}
@@ -172,6 +168,40 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
 	
 }
+
+
+											/*
+											vscode.tasks.registerTaskProvider('runStorybook', {
+												provideTasks(token?: vscode.CancellationToken) {
+														return [
+																new vscode.Task({type: 'runStorybook'}, vscode.TaskScope.Workspace,
+																		"Aesop Chronicle", "aesop", new vscode.ShellExecution(`npm run storybook --ci`))
+														];
+												},
+												resolveTask(task: vscode.Task, token?: vscode.CancellationToken) {
+														return task;
+												}
+											});
+
+											//define the script text to execute to the virtual terminal instance
+											const bootScript = `storybook --ci`;
+											const bootStorybook = new vscode.ProcessExecution(bootScript, {cwd: rootDir});
+
+											//now create a virtual terminal and execute our special npm script for it
+											//this first requires creating an eventEmitter that will fire that script
+											const scriptEmitter = new vscode.EventEmitter<string>();
+							
+											//we also define a slave process Pseudoterminal (allowing Aesop to control the terminal)
+											const pty: vscode.Pseudoterminal = {
+												onDidWrite: scriptEmitter.event,
+												open: () =>	scriptEmitter.fire(bootScript),
+												close: () => {},
+												handleInput: data => new vscode.ShellExecution(data)
+											};
+
+											//should this just be an active terminal/shellExecution?
+											const virtualTerminal = vscode.window.createTerminal({name: 'sb-runner', pty});
+											*/
 
 /*
 to-do:
