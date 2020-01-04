@@ -17,13 +17,6 @@ const host = "localhost"
 // const server = express();
 
 export function activate(context: vscode.ExtensionContext) {
-	// server.get('/', (req, res) => {
-		// 	vscode.window.showInformationMessage('Aesop server online');
-		// 	res.end();
-		// });
-		// server.listen(PORT);
-		
-		//create disposable variable type, registers awaken command & opens webview
 		let port = null;
 
 		let disposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
@@ -89,7 +82,7 @@ export function activate(context: vscode.ExtensionContext) {
 							// console.log(`This is indexOfP: `, indexOfP);
 							if(indexOfP !== -1) {
 								port = parseInt(lines[indexOfP + 1])
-								vscode.window.showInformationMessage(`storybook is now running on port:`, (typeof port), port);
+								vscode.window.showInformationMessage(`storybook is now running on port:`, port);
 								myEmitter.emit('sb_on')
 							}
 						}

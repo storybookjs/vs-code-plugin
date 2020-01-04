@@ -1074,7 +1074,7 @@ function activate(context) {
                 });
                 if (foundSb === false) {
                     // spin up storybook
-                    const runSb = spawn('npm', ['run', 'storybook'], { cwd: root, shell: true });
+                    const runSb = spawn('npm', ['run', 'storybook'], { cwd: root });
                     // vscode.window.showInformationMessage(`This is runSb: `, runSb)
                     vscode.window.showInformationMessage("We are now running storybook for you!");
                     runSb.on('error', function (err) {
@@ -1091,10 +1091,10 @@ function activate(context) {
                             // console.log(`This is indexOfP: `, indexOfP);
                             if (indexOfP !== -1) {
                                 port = parseInt(lines[indexOfP + 1]);
-                                vscode.window.showInformationMessage(`storybook is now running on port:`, (typeof port), port);
-                                myEmitter.emit('sb_on');
+                                vscode.window.showInformationMessage(`storybook is now running on port:`, port);
                             }
                         }
+                        myEmitter.emit('sb_on');
                     });
                     //This will make sure the child process is terminated on process exit
                     runSb.on('close', (code) => {
