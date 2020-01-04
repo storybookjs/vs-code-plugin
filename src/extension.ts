@@ -69,7 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
 							vscode.window.showInformationMessage(err);
 							process.exit(1);
 						});
-						
+						let counter = 0;
 						runSb.stdout.setEncoding('utf8')
 						// grab the stdout output
 						runSb.stdout.on('data', (data) => {
@@ -83,9 +83,21 @@ export function activate(context: vscode.ExtensionContext) {
 							// if port flag is found then grab the port which is in the next index
 							if(indexOfP !== -1) {
 								port = parseInt(lines[indexOfP + 1])
-								vscode.window.showInformationMessage(`storybook is now running on port:`, port);
-								myEmitter.emit('sb_on')
 							}
+						}
+						console.log(`stdout: ${data}`);
+						console.log(`this is lines: `, lines)
+						counter += 1;
+						if (counter === 3) {
+						
+							// console.log('This is line 171:', lines[171]);
+							const path = lines[171];
+							// console.log(typeof path, path)
+							const regExp = (/[^0-9]/g);
+							// port = parseInt(path.replace(regExp, ""));
+
+							vscode.window.showInformationMessage(`storybook is now running on port:`, port);
+							myEmitter.emit('sb_on')
 						}
 
 						});
@@ -139,7 +151,7 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	
 	context.subscriptions.push(disposable);
-	
+
 
 	disposable = vscode.commands.registerCommand('extension.getStories', () => {
 		//build a command that retrieves Storybook files on startup
