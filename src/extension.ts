@@ -61,7 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
 					if (foundSb === false) {
 
 						// spin up storybook
-						const runSb = spawn('npm', ['run', 'storybook'], {cwd: root});
+						const runSb = spawn('npm', ['run', 'storybook', '--ci'], {cwd: root});
 				
 						vscode.window.showInformationMessage("We are now running storybook for you!")
 						// if error running sb throw an error
@@ -90,13 +90,21 @@ export function activate(context: vscode.ExtensionContext) {
 						counter += 1;
 						if (counter === 3) {
 						
-							// console.log('This is line 171:', lines[171]);
-							// TO DO: if they don't use the flag, port is going to undefined;
-							// need to run below logic to reassign port;
-							const path = lines[171];
-							// console.log(typeof path, path)
-							const regExp = (/[^0-9]/g);
-							// port = parseInt(path.replace(regExp, ""));
+							// // console.log('This is line 171:', lines[171]);
+							// // TO DO: if they don't use the flag, port is going to undefined;
+							// // need to run below logic to reassign port;
+							for (let i = 165; i < lines.length; i += 1){
+								if(lines[i].includes('localhost')) {
+
+									const path = lines[i];
+									const regExp = (/[^0-9]/g);
+									port = (path.replace(regExp, ""));
+									vscode.window.showInformationMessage('This is port:', port)
+									break;
+								}
+							}
+							// vscode.window.showInformationMessage('line 172:', lines[172])
+							// vscode.window.showInformationMessage('line 173:', lines[173])
 
 							vscode.window.showInformationMessage(`storybook is now running on port:`, port);
 							myEmitter.emit('sb_on')
