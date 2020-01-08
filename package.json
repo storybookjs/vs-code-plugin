@@ -63,7 +63,7 @@
 		"menus": {
       "commandPalette": [
         {
-          "command": "exension.aesopChronicle",
+          "command": "extension.aesopChronicle",
           "when": "configuration == aesop-awake"
         }
 			]

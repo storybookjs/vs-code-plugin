@@ -4,17 +4,16 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as ps from 'ps-node';
 import * as child_process from 'child_process';
-import { Channel, ChannelHandler } from '@storybook/channels';
-import createChannel from "@storybook/channel-websocket"
+// import { Channel, ChannelHandler } from '@storybook/channels';
+// import createChannel from "@storybook/channel-websocket"
+// import * as WebSocket from 'ws';
+// import { TreeViewProvider, StoryObject, Story } from "./treeviewProvider"
+// import { QuickPickProvider, StorySelection } from "./quickpickProvider"
 
-import * as WebSocket from 'ws';
-import { TreeViewProvider, StoryObject, Story } from "./treeviewProvider"
-import { QuickPickProvider, StorySelection } from "./quickpickProvider"
-
-const g = global as any;
-g.WebSocket = WebSocket;
-let storybooksChannel: any;
-let establishedConnection : boolean = false;
+// const g = global as any;
+// g.WebSocket = WebSocket;
+// let storybooksChannel: any;
+// let establishedConnection : boolean = false;
 
 /* EXPRESS SERVER & DEPENDENCY
 
@@ -597,8 +596,8 @@ export function activate(context: vscode.ExtensionContext) {
 		//first test whether Storybook has been depended into your application
 		fs.access(path.join(rootDir, '/node_modules/@storybook'), (err) => {
 
-			const statusText = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-			statusText.text = "[Aesop] Looking for Storybook dependency..."
+			const statusText = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
+			statusText.text = "Aesop - Looking for Storybook dependency..."
 			statusText.color = "#FF8989";	
 
 			//if the filepath isn't found, show the user what Aesop is reading as the root path
