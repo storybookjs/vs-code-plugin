@@ -147,9 +147,9 @@ export function activate(context: vscode.ExtensionContext) {
 					</head>
 					<body id="root">
 				
-					<iframe src="http://${host}:${port}/?path=/story/task--default" width="100%" height="500"></iframe>
+					<iframe src="http://${host}:${port}" width="100%" height="500"></iframe>
 					<p>If you're seeing this, something is wrong :) (can't find server at ${host}:${port})</p>
-					<span>Let's put some content here v61</span>
+					<span>Let's put some content here v64</span>
 					</body>
 					</html>`;
 	
