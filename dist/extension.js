@@ -1026,12 +1026,31 @@ function splitValue(value) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode = __webpack_require__(/*! vscode */ "vscode");
 const url_1 = __webpack_require__(/*! url */ "url");
+const os = __webpack_require__(/*! os */ "os");
+const platform = os.platform();
+const commands = {
+    linux: {
+        cmd: 'netstat',
+        args: ['-apntu'],
+    },
+    darwin: {
+        cmd: 'netstat',
+        args: ['-v', '-n', '-p', 'tcp'],
+    },
+    win32: {
+        cmd: 'netstat.exe',
+        args: ['-a', '-n', '-o'],
+    },
+};
+const command = commands[platform];
+// const netstat = require('node-netstat')
+// import * as netstat from 'node-netstat';
 const { spawn } = __webpack_require__(/*! child_process */ "child_process");
 const EventEmitter = __webpack_require__(/*! events */ "events");
+const ps = __webpack_require__(/*! ps-node */ "./node_modules/ps-node/index.js");
 class MyEmitter extends EventEmitter {
 }
 const myEmitter = new MyEmitter();
-const ps = __webpack_require__(/*! ps-node */ "./node_modules/ps-node/index.js");
 //declare then host variable for launching storybook
 const host = "localhost";
 function activate(context) {
@@ -1057,6 +1076,7 @@ function activate(context) {
                 resultList.forEach((process) => {
                     if (process.arguments[0].includes('start-storybook')) {
                         vscode.window.showInformationMessage("You have storybook currently running..!");
+                        const processPid = parseInt(process['pid']);
                         const sbProcess = process.arguments;
                         const sbPortFlag = '-p';
                         const indexOfP = sbProcess.indexOf(sbPortFlag);
@@ -1064,10 +1084,26 @@ function activate(context) {
                             console.log(`current sb port: ${sbProcess[indexOfP + 1]}`);
                             port = Number(`${sbProcess[indexOfP + 1]}`);
                         }
+                        else {
+                            const netstatProc = spawn(command.cmd, command.args);
+                            const grepProc = spawn('grep', [processPid]);
+                            netstatProc.stdout.pipe(grepProc.stdin);
+                            grepProc.stdout.setEncoding('utf8');
+                            grepProc.stdout.on('data', (data) => {
+                                //   const str = data.toString();
+                                const parts = data.split(/\s/).filter(String);
+                                //   console.log('pid: ', pid);
+                                console.log(parseInt(parts[3].replace(/[^0-9]/g, '')));
+                                //   console.log('lines: ', parts);
+                                port = parseInt(parts[3].replace(/[^0-9]/g, ''));
+                                myEmitter.emit('sb_on');
+                                foundSb = true;
+                            });
+                        }
                         console.log(`port from lookup is: `, port);
                         // change found storybook to true
+                        // event emitter will invoke the create webview function
                         foundSb = true;
-                        // event emitter will invoke the create webview function 
                         myEmitter.emit('sb_on');
                     }
                 });
@@ -1127,6 +1163,7 @@ function activate(context) {
             }
             // event emitter to create webview panel
             myEmitter.on('sb_on', () => {
+                vscode.window.showInformationMessage('sb_on');
                 const panel = vscode.window.createWebviewPanel('aesop-sb', 'Aesop', vscode.ViewColumn.Three, {
                     enableScripts: true,
                     localResourceRoots: [vscode.Uri.file(context.extensionPath)]
@@ -1146,7 +1183,7 @@ function activate(context) {
 				
 					<iframe src="http://${host}:${port}" width="100%" height="500"></iframe>
 					<p>If you're seeing this, something is wrong :) (can't find server at ${host}:${port})</p>
-					<span>Let's put some content here v64</span>
+					<span>Let's put some content here v71</span>
 					</body>
 					</html>`;
             });

@@ -58,6 +58,7 @@
 	},
 	"dependencies": {
 		"express": "^4.17.1",
+		"node-netstat": "^1.8.0",
 		"npm": "^6.13.4",
 		"ps-node": "^0.1.6",
 		"vsce": "^1.71.0"
