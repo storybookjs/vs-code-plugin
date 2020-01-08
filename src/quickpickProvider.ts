@@ -10,7 +10,7 @@ export interface StorySelection {
   storyId: string
 }
 
-export class StoryPickerProvider {
+export class QuickPickProvider {
   stories: Story[]
   storyList: StoryObject[]
 
@@ -18,7 +18,7 @@ export class StoryPickerProvider {
   public static delimiterId = "--"
 
   constructor(storiesProvider: TreeViewProvider) {
-    //props of TreeViewProvider passed to this StoryPickerProvider
+    //props of TreeViewProvider passed to this QuickPickProvider
     storiesProvider.onDidChangeTreeData(story => {
       const { stories } = storiesProvider
       this.stories = stories
@@ -27,8 +27,8 @@ export class StoryPickerProvider {
 
   //picker result is retrieving the URL for it, ISN'T IT
   getParts(pickerResult: string): StorySelection {
-    const [kind, story] = pickerResult.split(StoryPickerProvider.delimiter)
-    const storyId = `${kind.toLowerCase()}${StoryPickerProvider.delimiterId}${story.toLowerCase().replace(/ /g, "-")}`
+    const [kind, story] = pickerResult.split(QuickPickProvider.delimiter)
+    const storyId = `${kind.toLowerCase()}${QuickPickProvider.delimiterId}${story.toLowerCase().replace(/ /g, "-")}`
     return { kind, story, storyId }
   }
 
@@ -37,7 +37,7 @@ export class StoryPickerProvider {
     if (!this.stories) return
     const unsorted = this.stories.reduce((list, section) => {
       const group = section.kind
-      const stories = section.stories.map(story => `${group}${StoryPickerProvider.delimiter}${story.name}`)
+      const stories = section.stories.map(story => `${group}${QuickPickProvider.delimiter}${story.name}`)
       return list.concat(stories)
     }, [])
 

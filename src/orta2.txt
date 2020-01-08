@@ -1,20 +1,19 @@
 import * as vscode from "vscode"
 import * as fs from "fs"
-
-// import createChannel from "@storybook/channel-websocket"
-// import * as WebSocket from "ws"
-// const g = global as any
-// g.WebSocket = WebSocket
-// import * as glob from "glob"
+import createChannel from "@storybook/channel-websocket"
+import * as WebSocket from "ws"
+const g = global as any
+g.WebSocket = WebSocket
+import * as glob from "glob"
 
 //create your own websocket? he used the ws library because it is abstracting
 
 //removed "Story" here (known as "UserComponent" in ours) -- never called here
-import { TreeViewProvider, StoryObject } from "./treeviewProvider"
+import { TreeViewProvider, StoryObject, Story } from "./treeviewProvider"
 import { StoryPickerProvider, StorySelection } from "./picker-provider"
 
-// var storybooksChannel: any
-// var connectedOnce = false
+var storybooksChannel: any
+var connectedOnce = false
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -23,7 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.executeCommand("setContext", "aesop-awake", true)
 
   //this is something only needed when you use the storybook-channels websocket library?
-  // let previewUri = vscode.Uri.parse("storybook://authority/preview")
+  let previewUri = vscode.Uri.parse("storybook://authority/preview")
 
   class TextDocumentContentProvider implements vscode.TextDocumentContentProvider {
     public provideTextDocumentContent(uri: vscode.Uri): string {
@@ -78,7 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(disposable, registration)
 
-  /*
+
   //grabs the configuration again inside the registered command?
   const host = vscode.workspace.getConfiguration("react-native-storybooks").get("host")
   const port = vscode.workspace.getConfiguration("react-native-storybooks").get("port")
@@ -133,7 +132,6 @@ export function activate(context: vscode.ExtensionContext) {
         
         let kinds: { [key: string]: StoryObject[] } = {}
         //this is basically asking if the stories returned from the data have a "kind" property, and if the kind contains a period
-
         const storydata = data.stories.filter(s => s.kind.match(regex))
 
         storydata.map(story => {
@@ -202,7 +200,6 @@ export function activate(context: vscode.ExtensionContext) {
       setCurrentStory(setParams)
     })
   })
-  */
 
   // Allow clicking, and keep state on what is selected
   vscode.commands.registerCommand("extension.openStory", (section, story) => {
@@ -233,7 +230,6 @@ export function activate(context: vscode.ExtensionContext) {
     currentChannel().emit("setCurrentStory", params)
   }
 
-  /*
   //when connecting to storybook, create a websocket connection
   //then pass it as an argument to the registerCallbacks function
   vscode.commands.registerCommand("extension.connectToStorybooks", () => {
@@ -266,14 +262,12 @@ export function activate(context: vscode.ExtensionContext) {
     const currentStories = currentSection.stories
     const currentIndex = currentStories.map(e => e.id).indexOf(currentStoryId)
     if (currentIndex === 0) {
-      // go around or something
+      // if you have reached the last story of an array of stories, enables the ability to wrap around
       vscode.commands.executeCommand("extension.openStory", currentSection, currentStories[currentStories.length - 1])
     } else {
       vscode.commands.executeCommand("extension.openStory", currentSection, currentStories[currentIndex - 1])
     }
   })
-  
-  */
 
   vscode.commands.registerCommand("extension.expandAllStories", () => {
     storiesProvider.expandAll()

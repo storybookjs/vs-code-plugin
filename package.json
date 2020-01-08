@@ -17,22 +17,14 @@
 	],
 	"main": "./dist/extension",
 	"contributes": {
-		"taskDefinitions": [
-			{
-					"type": "runStorybook"
-			}
-		],
 		"commands": [
 			{
 				"command": "extension.aesopAwaken",
 				"title": "Aesop Awaken"
-			}
-		],
-		"keybindings": [
+			},
 			{
-				"command": "extension.aesopAwaken",
-				"key": "ctrl+k a",
-				"mac": "cmd+k a"
+				"command": "extension.aesopChronicle",
+				"title": "Aesop Chronicle"
 			}
 		],
 		"configuration": {
@@ -52,24 +44,49 @@
         "aesop.storyRegex": {
           "type": "string",
           "default": "**/*.story.*",
-          "description": "A regular expression that picks up story files in your project"
+          "description": "A regular expression that picks up Storybook files in your root project folder."
         },
         "aesop.storybookFilterRegex": {
           "type": "string",
           "default": ".",
-          "description": "A regular expression to filter stories appearing in the explorer view"
+          "description": "A regular expression to filter Storybook stories appearing in explorer view."
         }
       }
-    },
-    "views": {
+		},
+		"keybindings": [
+			{
+				"command": "extension.aesopAwaken",
+				"key": "ctrl+k a",
+				"mac": "cmd+k a"
+			}
+		],
+		"menus": {
+      "commandPalette": [
+        {
+          "command": "exension.aesopChronicle",
+          "when": "configuration == aesop-awake"
+        }
+			]
+		},
+		"views": {
       "explorer": [
         {
-          "id": "storybook",
-          "name": "Storybook",
-          "when": "is-running-aesop"
+          "id": "storybook-view",
+          "name": "Storybook x Aesop",
+          "when": "aesop-awake"
         }
       ]
-    }
+    },
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "storybook-aesop",
+					"title": "Storybook",
+					"icon": "resources/storybook-icon.png",
+					"when": "aesop-awake"
+				}
+			]
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "webpack --mode production",
