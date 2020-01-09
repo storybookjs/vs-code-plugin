@@ -605,19 +605,21 @@ export function activate(context: vscode.ExtensionContext) {
 				vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder, ${rootDir}`);
 			}	else {
 
-				const statusText = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
+				const statusText = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 5);
 				statusText.text = "Finding SB dependency..."
 				statusText.color = "#FF8989";
+				statusText.command = undefined;
+				statusText.tooltip = "Aesop status";
+				statusText.show();
 
 				//check to see if a storybook node process is already running
 				if (checkedProcesses === false){
 					ps.lookup(
 						{command: 'node',
 						psargs: 'ux'
-					}, (err, resultList) => {
+					}, (err : Error, resultList : any) => {
 						if (err){
 							vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
-							statusText.dispose();
 						} else {
 							//notify the user that Aesop is checking for a running Storybook instance
 							statusText.text = `Reviewing processes...`;
@@ -662,7 +664,7 @@ export function activate(context: vscode.ExtensionContext) {
 									if (err){
 										vscode.window.showErrorMessage(`Aesop is attempting to read ${rootDir}. Is there a package.json file here?`);
 									}	else {
-										statusText.text = `[Aesop] Checking your Storybook scripts in package.json...`;
+										statusText.text = `Checking package.json...`;
 
 										//enter the package.JSON file and retrieve its contents as an object
 										let packageJSON = JSON.parse(data.toString());
@@ -697,7 +699,7 @@ export function activate(context: vscode.ExtensionContext) {
 										//possible: add --ci tag to existing package.json with an fs function?
 										//e.g. process.scripts.storybook = `${storybookScript} --ci`, then write
 
-										//older Windows systems support here: check platform and change process command accordingly
+										//older Windows systems support here: check platform, change process command accordingly
 										let platform : NodeJS.Platform = os.platform();
 										vscode.window.showInformationMessage(`Your platform is ${platform}`);
 										let processCommand : string;
@@ -715,7 +717,7 @@ export function activate(context: vscode.ExtensionContext) {
 										vscode.window.showInformationMessage(`${rootDir}`);
 
 										//now launch the child process on the port you've derived
-										const runSb = child_process.spawn(processCommand, ['run', 'storybook'], {cwd: rootDir, detached: true, env: process.env, windowsHide: true, windowsVerbatimArguments: true });
+										const runSb = child_process.spawn(processCommand, ['run', 'storybook'], {cwd: rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
 
 										statusText.text = `Done looking. Aesop will now run Storybook.`;
 
@@ -768,43 +770,59 @@ export function activate(context: vscode.ExtensionContext) {
 
 	let openDisposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopChronicle', () => {
 
-		const aesopWebview : vscode.Webview = {
-			cspSource: null,
-			html: aesopPreviewHTML,
-			options: {
+		const panel = vscode.window.createWebviewPanel(
+			'aesop-sb',
+			'Aesop',
+			vscode.ViewColumn.Beside,
+			{
 				enableCommandUris: true,
 				enableScripts: true,
 				portMapping: [{
 					webviewPort: PORT,
-					extensionHostPort: PORT,
+					extensionHostPort: PORT
 				}],
 				localResourceRoots: [vscode.Uri.file(context.extensionPath)]
-			},
-			// asWebviewUri(){};
-			// onDidReceiveMessage(){};
-			// postMessage() {}
-		}
+			}
+		);
 
-		const panel : vscode.WebviewPanel = {
-			viewType: 'aesop-sb',
-			active: true,
-			options: {
-				enableFindWidget: false,
-				retainContextWhenHidden: true
-			},
-			title: 'Aesop',
-			viewColumn: vscode.ViewColumn.Beside,
-			visible: true,
-			webview: aesopWebview,
+		// const aesopWebview : vscode.Webview = {
+		// 	cspSource: null,
+		// 	html: aesopPreviewHTML,
+		// 	options: {
+		// 		enableCommandUris: true,
+		// 		enableScripts: true,
+		// 		portMapping: [{
+		// 			webviewPort: PORT,
+		// 			extensionHostPort: PORT,
+		// 		}],
+		// 		localResourceRoots: [vscode.Uri.file(context.extensionPath)]
+		// 	},
+		// 	asWebviewUri(){};
+		// 	onDidReceiveMessage(){};
+		// 	postMessage() {}
+		// }
 
-			dispose(){},
-			onDidChangeViewState(){},
-			onDidDispose(){},
-			reveal() {},
-		}
+		// const panel : vscode.WebviewPanel = {
+		// 	viewType: 'aesop-sb',
+		// 	active: true,
+		// 	options: {
+		// 		enableFindWidget: false,
+		// 		retainContextWhenHidden: true
+		// 	},
+		// 	title: 'Aesop',
+		// 	viewColumn: vscode.ViewColumn.Beside,
+		// 	visible: true,
+		// 	webview: aesopWebview,
+
+		// 	dispose(){},
+		// 	onDidChangeViewState() : vscode.Event<vscode.WebviewPanelOnDidChangeViewStateEvent>{},
+		// 	onDidDispose(){},
+		// 	reveal() {},
+		// }
 	
 		//here's where I need logic to fill html
-		const aesopPreviewHTML : string = `
+		// const aesopPreviewHTML : string = `
+		panel.webview.html = `
 		<!DOCTYPE html>
 		<html lang="en">
 			<head>
@@ -813,7 +831,7 @@ export function activate(context: vscode.ExtensionContext) {
 				<title>Aesop</title>
 			</head>
 			<body>
-				<iframe src="http://${host}:${PORT}/?path=/story/welcome--to-storybook></iframe>
+				<iframe src="http://${host}:${PORT}></iframe>
 			</body>
 		</html>`
 	});

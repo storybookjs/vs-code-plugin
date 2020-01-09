@@ -1617,9 +1617,12 @@ function activate(context) {
                 vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder, ${rootDir}`);
             }
             else {
-                const statusText = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
+                const statusText = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 5);
                 statusText.text = "Finding SB dependency...";
                 statusText.color = "#FF8989";
+                statusText.command = undefined;
+                statusText.tooltip = "Aesop status";
+                statusText.show();
                 //check to see if a storybook node process is already running
                 if (checkedProcesses === false) {
                     ps.lookup({ command: 'node',
@@ -1627,7 +1630,6 @@ function activate(context) {
                     }, (err, resultList) => {
                         if (err) {
                             vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
-                            statusText.dispose();
                         }
                         else {
                             //notify the user that Aesop is checking for a running Storybook instance
@@ -1663,7 +1665,7 @@ function activate(context) {
                                         vscode.window.showErrorMessage(`Aesop is attempting to read ${rootDir}. Is there a package.json file here?`);
                                     }
                                     else {
-                                        statusText.text = `[Aesop] Checking your Storybook scripts in package.json...`;
+                                        statusText.text = `Checking package.json...`;
                                         //enter the package.JSON file and retrieve its contents as an object
                                         let packageJSON = JSON.parse(data.toString());
                                         let storybookScript = packageJSON.scripts.storybook;
@@ -1692,7 +1694,7 @@ function activate(context) {
                                         ;
                                         //possible: add --ci tag to existing package.json with an fs function?
                                         //e.g. process.scripts.storybook = `${storybookScript} --ci`, then write
-                                        //older Windows systems support here: check platform and change process command accordingly
+                                        //older Windows systems support here: check platform, change process command accordingly
                                         let platform = os.platform();
                                         vscode.window.showInformationMessage(`Your platform is ${platform}`);
                                         let processCommand;
@@ -1707,7 +1709,7 @@ function activate(context) {
                                         vscode.window.showWarningMessage(`${process.cwd()}`);
                                         vscode.window.showInformationMessage(`${rootDir}`);
                                         //now launch the child process on the port you've derived
-                                        const runSb = child_process.spawn(processCommand, ['run', 'storybook'], { cwd: rootDir, detached: true, env: process.env, windowsHide: true, windowsVerbatimArguments: true });
+                                        const runSb = child_process.spawn(processCommand, ['run', 'storybook'], { cwd: rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
                                         statusText.text = `Done looking. Aesop will now run Storybook.`;
                                         runSb.stdout.setEncoding('utf8');
                                         let counter = 0;
@@ -1750,19 +1752,50 @@ function activate(context) {
     }); //close disposable
     context.subscriptions.push(disposable);
     let openDisposable = vscode.commands.registerCommand('extension.aesopChronicle', () => {
-        class aesopWebview {
-            constructor() {
-                this.html = aesopPreviewHTML;
-            }
-            asWebviewUri() { }
-            postMessage() { }
-        }
-        class panel {
-            dispose() { }
-            reveal() { }
-        }
+        const panel = vscode.window.createWebviewPanel('aesop-sb', 'Aesop', vscode.ViewColumn.Beside, {
+            enableCommandUris: true,
+            enableScripts: true,
+            portMapping: [{
+                    webviewPort: PORT,
+                    extensionHostPort: PORT
+                }],
+            localResourceRoots: [vscode.Uri.file(context.extensionPath)]
+        });
+        // const aesopWebview : vscode.Webview = {
+        // 	cspSource: null,
+        // 	html: aesopPreviewHTML,
+        // 	options: {
+        // 		enableCommandUris: true,
+        // 		enableScripts: true,
+        // 		portMapping: [{
+        // 			webviewPort: PORT,
+        // 			extensionHostPort: PORT,
+        // 		}],
+        // 		localResourceRoots: [vscode.Uri.file(context.extensionPath)]
+        // 	},
+        // 	asWebviewUri(){};
+        // 	onDidReceiveMessage(){};
+        // 	postMessage() {}
+        // }
+        // const panel : vscode.WebviewPanel = {
+        // 	viewType: 'aesop-sb',
+        // 	active: true,
+        // 	options: {
+        // 		enableFindWidget: false,
+        // 		retainContextWhenHidden: true
+        // 	},
+        // 	title: 'Aesop',
+        // 	viewColumn: vscode.ViewColumn.Beside,
+        // 	visible: true,
+        // 	webview: aesopWebview,
+        // 	dispose(){},
+        // 	onDidChangeViewState() : vscode.Event<vscode.WebviewPanelOnDidChangeViewStateEvent>{},
+        // 	onDidDispose(){},
+        // 	reveal() {},
+        // }
         //here's where I need logic to fill html
-        const aesopPreviewHTML = `
+        // const aesopPreviewHTML : string = `
+        panel.webview.html = `
 		<!DOCTYPE html>
 		<html lang="en">
 			<head>
@@ -1771,7 +1804,7 @@ function activate(context) {
 				<title>Aesop</title>
 			</head>
 			<body>
-				<iframe src="http://${host}:${PORT}/?path=/story/welcome--to-storybook></iframe>
+				<iframe src="http://${host}:${PORT}></iframe>
 			</body>
 		</html>`;
     });

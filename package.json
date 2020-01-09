@@ -60,14 +60,6 @@
 				"mac": "cmd+k a"
 			}
 		],
-		"menus": {
-			"commandPalette": [
-				{
-					"command": "extension.aesopChronicle",
-					"when": "configuration == aesop-awake"
-				}
-			]
-		},
 		"views": {
 			"explorer": [
 				{
@@ -82,7 +74,7 @@
 				{
 					"id": "storybook-aesop",
 					"title": "Storybook",
-					"icon": "resources/storybook-icon.png",
+					"icon": "resources/SB-logo.svg",
 					"when": "aesop-awake"
 				}
 			]
