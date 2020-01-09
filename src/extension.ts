@@ -3,15 +3,38 @@ import * as express from 'express';
 import { resolveCliPathFromVSCodeExecutablePath } from 'vscode-test';
 import { pathToFileURL, fileURLToPath } from 'url';
 
+const os = require('os');
+
+const platform = os.platform();
+const commands = {
+	linux: {
+	  cmd: 'netstat',
+	  args: ['-apntu'],
+	},
+	darwin: {
+	  cmd: 'netstat',
+	  args: ['-v', '-n', '-p', 'tcp'],
+	},
+	win32: {
+	  cmd: 'netstat.exe',
+	  args: ['-a', '-n', '-o'],
+	},
+  };
+  
+  const command = commands[platform];
+
+// const netstat = require('node-netstat')
+// import * as netstat from 'node-netstat';
+
 const { spawn } = require('child_process');
 const EventEmitter = require('events');
+
+
+const ps = require('ps-node')
 
 class MyEmitter extends EventEmitter {}
 
 const myEmitter = new MyEmitter()
-
-const ps = require('ps-node')
-
 //declare then host variable for launching storybook
 const host = "localhost"
 
@@ -43,6 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
 					resultList.forEach((process) => {
 						if (process.arguments[0].includes('start-storybook')) {
 							vscode.window.showInformationMessage("You have storybook currently running..!")
+							const processPid = parseInt(process['pid']);
 							const sbProcess = process.arguments;
 							const sbPortFlag = '-p'
 							const indexOfP = sbProcess.indexOf(sbPortFlag);
@@ -50,10 +74,27 @@ export function activate(context: vscode.ExtensionContext) {
 							console.log(`current sb port: ${sbProcess[indexOfP+1]}`);
 							port = Number(`${sbProcess[indexOfP+1]}`)
 							}
+							else {
+								const netstatProc = spawn(command.cmd, command.args);
+								const grepProc = spawn('grep', [processPid]);
+
+								netstatProc.stdout.pipe(grepProc.stdin);
+								grepProc.stdout.setEncoding('utf8');
+								grepProc.stdout.on('data', (data) => {
+								//   const str = data.toString();
+									const parts = data.split(/\s/).filter(String);
+									//   console.log('pid: ', pid);
+									console.log(parseInt(parts[3].replace(/[^0-9]/g, '')));
+									//   console.log('lines: ', parts);
+									port = parseInt(parts[3].replace(/[^0-9]/g, ''))
+									myEmitter.emit('sb_on')
+									foundSb = true;
+								});
+							}
 							console.log(`port from lookup is: `, port);
 							// change found storybook to true
-							foundSb = true;
-							// event emitter will invoke the create webview function 
+							// event emitter will invoke the create webview function
+							foundSb = true; 
 							myEmitter.emit('sb_on')
 						}
 					});
@@ -122,6 +163,7 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 				// event emitter to create webview panel
 				myEmitter.on('sb_on', ()=>{
+					vscode.window.showInformationMessage('sb_on');
 					
 					const panel = vscode.window.createWebviewPanel(
 						'aesop-sb',
@@ -149,7 +191,7 @@ export function activate(context: vscode.ExtensionContext) {
 				
 					<iframe src="http://${host}:${port}" width="100%" height="500"></iframe>
 					<p>If you're seeing this, something is wrong :) (can't find server at ${host}:${port})</p>
-					<span>Let's put some content here v64</span>
+					<span>Let's put some content here v71</span>
 					</body>
 					</html>`;
 	
