@@ -4,6 +4,11 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as ps from 'ps-node';
 import * as child_process from 'child_process';
+import * as events from 'events';
+import * as os from 'os';
+
+const aesopEmitter = new events.EventEmitter();
+
 // import { Channel, ChannelHandler } from '@storybook/channels';
 // import createChannel from "@storybook/channel-websocket"
 // import * as WebSocket from 'ws';
@@ -573,16 +578,16 @@ const running: boolean = await isProcessRunning('myProcess')
 
 export function activate(context: vscode.ExtensionContext) {
 
-	let port : number = vscode.workspace.getConfiguration("aesop").get("port");
+	let PORT : number = vscode.workspace.getConfiguration("aesop").get("port");
 	let host : string = vscode.workspace.getConfiguration("aesop").get("host");
 
-	vscode.window.showInformationMessage(`Port default to ${port}`);
+	vscode.window.showInformationMessage(`Port set by default to ${PORT}`);
 
 	//set context "aesop-awake" to true; enabling views
 	vscode.commands.executeCommand("setContext", "aesop-awake", true);
 
 	//create disposable to register Aesop Awaken command to subscriptions
-	let disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
+	let disposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
 
 		//declare variable to toggle whether running Node processes have been checked
 		let checkedProcesses : Boolean = false;
@@ -595,27 +600,27 @@ export function activate(context: vscode.ExtensionContext) {
 
 		//first test whether Storybook has been depended into your application
 		fs.access(path.join(rootDir, '/node_modules/@storybook'), (err) => {
-
-			const statusText = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
-			statusText.text = "Aesop - Looking for Storybook dependency..."
-			statusText.color = "#FF8989";	
-
 			//if the filepath isn't found, show the user what Aesop is reading as the root path
 			if (err) {
 				vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder, ${rootDir}`);
-				statusText.dispose();
 			}	else {
+
+				const statusText = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
+				statusText.text = "Finding SB dependency..."
+				statusText.color = "#FF8989";
+
 				//check to see if a storybook node process is already running
 				if (checkedProcesses === false){
-					
-					ps.lookup({command: 'node', psargs: 'ux'}, (err, resultList) => {
+					ps.lookup(
+						{command: 'node',
+						psargs: 'ux'
+					}, (err, resultList) => {
 						if (err){
 							vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
 							statusText.dispose();
 						} else {
-
 							//notify the user that Aesop is checking for a running Storybook instance
-							statusText.text = `[Aesop] Reviewing running processes...`;
+							statusText.text = `Reviewing processes...`;
 
 							//if the process lookup was able to find running processes, iterate through to review them
 							resultList.forEach((process) => {
@@ -631,17 +636,17 @@ export function activate(context: vscode.ExtensionContext) {
 									//if so, extract port number and use that value to populate the webview with that contents
 									const pFlagIndex = process.arguments.indexOf('-p');
 									if (pFlagIndex !== -1){
-										port = parseInt(process.arguments[pFlagIndex+1]);
+										PORT = parseInt(process.arguments[pFlagIndex+1]);
 									}
-		
+									
+									//set foundSb to true to prevent our function from running another process
+									foundSb = true;
+									statusText.text = `Retrieving Storybook processs..`;
+
 									/* OUTPUT LOGGER */
 									fs.appendFile(path.join(rootDir, 'YOLO.txt'), `This process matches for 'storybook':\n
 									PID: ${process.pid}, COMMAND:${process.command}, ARGUMENTS: ${process.arguments}\n
-									PORT has been assigned to: ${port}`, (err) => {console.log(err)});
-
-									//set foundSb to true to prevent our function from running another process
-									foundSb = true;
-									statusText.text = `[Aesop] Retrieving your running Storybook...`;
+									PORT has been assigned to: ${PORT}`, (err) => {console.log(err)});
 
 								}//---> close if process.arguments[0] contains storybook
 							}) //---> close resultList.forEach()
@@ -670,33 +675,49 @@ export function activate(context: vscode.ExtensionContext) {
 										//iterate through the text string (stored on "storybook" key) and parse out port flag
 										//it is more helpful to split it into an array separated by whitespace to grab this
 										let retrievedScriptArray = storybookScript.split(' ');
+										
 										for (let i = 0; i < retrievedScriptArray.length; i++){
 											//stretch goal: add logic for other flags as we implement further functionality
 											if (retrievedScriptArray[i] === '-p'){
-												port = parseInt(retrievedScriptArray[i+1]);
+												PORT = parseInt(retrievedScriptArray[i+1]);
 
 												/* OUTPUT LOGGER */
 												fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Port from script":\n${parseInt(retrievedScriptArray[i+1])}\n
-												Port at this moment:\n${port}\n`, (err) => {console.log(err)});
-												
-												break;
+												Port at this moment:\n${PORT}\n`, (err) => {console.log(err)});
 											} else if (i === retrievedScriptArray.length-1){
 												//termination case: when you have reached the end of the script in the 'for' loop
 												//ADD LOGIC TO HANDLE WHEN NO SCRIPT FLAG IS GIVEN
 
 												/* OUTPUT LOGGER */
 												fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Script found, but no port flag detected.\n
-												Port when no port flag found:\n${port}\n`, (err) => {console.log(err)});
+												Port when no port flag found:\n${PORT}\n`, (err) => {console.log(err)});
 											}
-										}
+										};
 
 										//possible: add --ci tag to existing package.json with an fs function?
 										//e.g. process.scripts.storybook = `${storybookScript} --ci`, then write
 
-										//now launch the child process on the port you've derived
-										const runSb = child_process.spawn('npm', ['run', 'storybook']);
+										//older Windows systems support here: check platform and change process command accordingly
+										let platform : NodeJS.Platform = os.platform();
+										vscode.window.showInformationMessage(`Your platform is ${platform}`);
+										let processCommand : string;
 
-										vscode.window.showInformationMessage("Done looking. Aesop will now run Storybook for you.");
+										switch (platform) {
+											case 'win32':
+											 processCommand = 'npm.cmd';
+											 vscode.window.showInformationMessage(`${processCommand}`);
+											break;
+											default:
+												processCommand = 'npm';
+										}
+
+										vscode.window.showWarningMessage(`${process.cwd()}`)
+										vscode.window.showInformationMessage(`${rootDir}`);
+
+										//now launch the child process on the port you've derived
+										const runSb = child_process.spawn(processCommand, ['run', 'storybook'], {cwd: rootDir, detached: true, env: process.env, windowsHide: true, windowsVerbatimArguments: true });
+
+										statusText.text = `Done looking. Aesop will now run Storybook.`;
 
 										runSb.stdout.setEncoding('utf8');
 
@@ -710,7 +731,7 @@ export function activate(context: vscode.ExtensionContext) {
 											if (counter === 3) {
 												const path = lines[171];
 												const regExp = (/[^0-9]/g);
-												port = parseInt(path.replace(regExp, ""));
+												PORT = parseInt(path.replace(regExp, ""));
 											}
 
 											let sbPortFlag = '-p';
@@ -718,11 +739,11 @@ export function activate(context: vscode.ExtensionContext) {
 											    const indexOfP = lines.indexOf(sbPortFlag);
 											    vscode.window.showInformationMessage(`This is indexOfP: `, indexOfP);
 											    if(indexOfP !== -1) {
-											      port = parseInt(lines[indexOfP + 1]);
-											      vscode.window.showInformationMessage(`storybook is now running on port: ${port}`);
+											      PORT = parseInt(lines[indexOfP + 1]);
+											      vscode.window.showInformationMessage(`storybook is now running on port: ${PORT}`);
 											    }
 											  }
-										});
+										})
 
 										runSb.on('error', (err) => {
 											console.log(err);
@@ -732,7 +753,7 @@ export function activate(context: vscode.ExtensionContext) {
 										//This will make sure the child process is terminated on process exit
 										runSb.on('close', (code) => {
 											console.log(`child process exited with code ${code}`);
-										});
+										})
 									}
 								})
 							} //close spin up server
@@ -745,19 +766,45 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(disposable);
 
-	let openDisposable = vscode.commands.registerCommand('extension.aesopChronicle', () => {
-		const panel = vscode.window.createWebviewPanel(
-			'aesop-sb',
-			'Aesop',
-			vscode.ViewColumn.Beside,
-			{
+	let openDisposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopChronicle', () => {
+
+		const aesopWebview : vscode.Webview = {
+			cspSource: null,
+			html: aesopPreviewHTML,
+			options: {
+				enableCommandUris: true,
 				enableScripts: true,
+				portMapping: [{
+					webviewPort: PORT,
+					extensionHostPort: PORT,
+				}],
 				localResourceRoots: [vscode.Uri.file(context.extensionPath)]
-			}
-		);
+			},
+			// asWebviewUri(){};
+			// onDidReceiveMessage(){};
+			// postMessage() {}
+		}
+
+		const panel : vscode.WebviewPanel = {
+			viewType: 'aesop-sb',
+			active: true,
+			options: {
+				enableFindWidget: false,
+				retainContextWhenHidden: true
+			},
+			title: 'Aesop',
+			viewColumn: vscode.ViewColumn.Beside,
+			visible: true,
+			webview: aesopWebview,
+
+			dispose(){},
+			onDidChangeViewState(){},
+			onDidDispose(){},
+			reveal() {},
+		}
 	
 		//here's where I need logic to fill html
-		panel.webview.html = `
+		const aesopPreviewHTML : string = `
 		<!DOCTYPE html>
 		<html lang="en">
 			<head>
@@ -766,7 +813,7 @@ export function activate(context: vscode.ExtensionContext) {
 				<title>Aesop</title>
 			</head>
 			<body>
-				<iframe src="http://${host}:${port}/?path=/story/welcome--to-storybook></iframe>
+				<iframe src="http://${host}:${PORT}/?path=/story/welcome--to-storybook></iframe>
 			</body>
 		</html>`
 	});

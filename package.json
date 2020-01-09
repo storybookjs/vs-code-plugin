@@ -28,30 +28,30 @@
 			}
 		],
 		"configuration": {
-      "type": "object",
-      "title": "Configuration",
-      "properties": {
-        "aesop.port": {
-          "type": "number",
-          "default": 8509,
-          "description": "Port number"
-        },
-        "aesop.host": {
-          "type": "string",
-          "default": "localhost",
-          "description": "Host address"
-        },
-        "aesop.storyRegex": {
-          "type": "string",
-          "default": "**/*.story.*",
-          "description": "A regular expression that picks up Storybook files in your root project folder."
-        },
-        "aesop.storybookFilterRegex": {
-          "type": "string",
-          "default": ".",
-          "description": "A regular expression to filter Storybook stories appearing in explorer view."
-        }
-      }
+			"type": "object",
+			"title": "Configuration",
+			"properties": {
+				"aesop.port": {
+					"type": "number",
+					"default": 8509,
+					"description": "Port number"
+				},
+				"aesop.host": {
+					"type": "string",
+					"default": "localhost",
+					"description": "Host address"
+				},
+				"aesop.storyRegex": {
+					"type": "string",
+					"default": "**/*.story.*",
+					"description": "A regular expression that picks up Storybook files in your root project folder."
+				},
+				"aesop.storybookFilterRegex": {
+					"type": "string",
+					"default": ".",
+					"description": "A regular expression to filter Storybook stories appearing in explorer view."
+				}
+			}
 		},
 		"keybindings": [
 			{
@@ -61,22 +61,22 @@
 			}
 		],
 		"menus": {
-      "commandPalette": [
-        {
-          "command": "extension.aesopChronicle",
-          "when": "configuration == aesop-awake"
-        }
+			"commandPalette": [
+				{
+					"command": "extension.aesopChronicle",
+					"when": "configuration == aesop-awake"
+				}
 			]
 		},
 		"views": {
-      "explorer": [
-        {
-          "id": "storybook-view",
-          "name": "Storybook x Aesop",
-          "when": "aesop-awake"
-        }
-      ]
-    },
+			"explorer": [
+				{
+					"id": "storybook-view",
+					"name": "Storybook x Aesop",
+					"when": "aesop-awake"
+				}
+			]
+		},
 		"viewsContainers": {
 			"activitybar": [
 				{
