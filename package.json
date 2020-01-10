@@ -40,16 +40,6 @@
 					"type": "string",
 					"default": "localhost",
 					"description": "Host address"
-				},
-				"aesop.storyRegex": {
-					"type": "string",
-					"default": "**/*.story.*",
-					"description": "A regular expression that picks up Storybook files in your root project folder."
-				},
-				"aesop.storybookFilterRegex": {
-					"type": "string",
-					"default": ".",
-					"description": "A regular expression to filter Storybook stories appearing in explorer view."
 				}
 			}
 		},
@@ -87,11 +77,8 @@
 		"webpack-cli": "^3.3.10"
 	},
 	"dependencies": {
-		"express": "^4.17.1",
-		"node-netstat": "^1.8.0",
 		"npm": "^6.13.4",
 		"ps-node": "^0.1.6",
 		"vsce": "^1.71.0",
-		"vsce": "^1.71.0"
 	}
 }
