@@ -59,24 +59,7 @@
 				"key": "ctrl+k a",
 				"mac": "cmd+k a"
 			}
-		],
-		"views": {
-			"explorer": [
-				{
-					"id": "storybook-view",
-					"name": "Storybook x Aesop"
-				}
-			]
-		},
-		"viewsContainers": {
-			"activitybar": [
-				{
-					"id": "storybook-aesop",
-					"title": "Storybook",
-					"icon": "resources/SB-logo.svg"
-				}
-			]
-		}
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "webpack --mode production",
