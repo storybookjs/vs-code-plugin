@@ -1,52 +1,23 @@
-# AESOP README
-Aesop is a project currently under development.
+# AESOP
+Meet Aesop: a lightweight, open-source Storybook helper extension.
+
+This humble helper previews your Storybook alongside your codebase for a responsive workflow. It should integrate with nearly all existing Storybook addons and features, and it is optimized to use minimal system resources. If Aesop runs your Storybook server, that process will run as an attached child process to Aesop.
 
 ## Features
-<!-- Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file. -->
+If you are working in a project folder on a Storybook-enabled application, Aesop will run a Storybook process at startup and display the same suite you're used to right inside Visual Studio Code.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+If you're used to starting up your Storybook from the CLI with additional arguments, Aesop won't impede your workflow — it understands Node processes, and will happily retrieve your running Storybook.
 
 ## Requirements
-
-Aesop uses Fable, a simple, React-like helper library, to generate its main and add-ons UI. You should not need to install React if you are not building your app with React.
-
-Though Aesop's declaration files are written in TypeScript, you should not need any additional transpilers than those included with your installation of VSCode.
-
-Aesop depends on:
-  - babel
-  - tsc-loader
-  - express
-
-<!-- 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them. -->
+Aesop's production build currently only depends on ps-node. This is used to simplify certain lookup functions while accessing running Node processes, but will likely be removed in a future version to make Aesop dependency-free.
 
 ## Extension Settings
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+Because Aesop is lightweight, it is also minimal config. It contributes one hotkey command chord to activate: CTRL / CMD K + A
 
-This extension contributes the following settings:
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
+The Aesop team aims to provide further customization options and improved UI integration within Visual Studio Code as development continues. Currently, Storybook's default configuration contributes default port and host values that are only meant to be reserved for future versions.
 
 ## Release Notes
-Aesop is a project currently under development by Async. Please check back in late January for the 1.0 launch.
+Please contact the developers at https://github.com/Async-Aesop/aesop with comments, questions, and any features you would like to see in a future version of Aesop.
 
-### 0.0.1
-
-Begun development stage.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+### 1.0.0
+Aesop is pleased to make your acquaintance. Happy testing.

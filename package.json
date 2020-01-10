@@ -13,7 +13,7 @@
 	],
 	"activationEvents": [
 		"onCommand:extension.aesopAwaken",
-		"workspaceContains:**/node_modules/@storybook/core/package.json"
+		"workspaceContains:**/node_modules/@storybook/core/*.json"
 	],
 	"main": "./dist/extension",
 	"contributes": {
