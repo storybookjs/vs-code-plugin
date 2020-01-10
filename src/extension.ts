@@ -310,7 +310,7 @@ export function activate(context: vscode.ExtensionContext) {
 				</style>
 			</head>
 			<body>
-				<iframe src="http://${host}:${PORT}" width="100%" height="100%"></iframe>
+				<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
 			</body>
 		</html>`
     

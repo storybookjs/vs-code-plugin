@@ -15,19 +15,6 @@
 				"kind": "build",
 				"isDefault": true
 			}
-		},
-		{
-			"label": "Boot Storybook",
-			"type": "process",
-			"command": "npm run storybook --ci",
-			"group": "none",
-			"presentation": {
-				"reveal": "never",
-				"focus": false,
-				"clear": true,
-				"panel": "shared"
-			},
-			"detail": "Aesop: Chronicle"
 		}
 	]
 }
