@@ -1,7 +1,7 @@
 {
 	"name": "aesop",
 	"displayName": "Aesop",
-	"description": "An IDE-native suite for previewing Storybook files.",
+	"description": "An IDE-native suite for previewing Storybook.",
 	"version": "0.0.7",
 	"publisher": "async-aesop",
 	"repository": "https://github.com/Async-Aesop/aesop",
@@ -87,11 +87,11 @@
 		"webpack-cli": "^3.3.10"
 	},
 	"dependencies": {
-		"@storybook/channel-websocket": "^5.2.8",
 		"express": "^4.17.1",
+		"node-netstat": "^1.8.0",
 		"npm": "^6.13.4",
 		"ps-node": "^0.1.6",
 		"vsce": "^1.71.0",
-		"ws": "^7.2.1"
+		"vsce": "^1.71.0"
 	}
 }

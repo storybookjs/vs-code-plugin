@@ -1328,6 +1328,7 @@ function deactivate() {
 }
 exports.deactivate = deactivate;
 
+module.exports = require("os");
 
 /***/ }),
 
