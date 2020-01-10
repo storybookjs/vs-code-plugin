@@ -1,8 +1,8 @@
 {
 	"name": "aesop",
 	"displayName": "Aesop",
-	"description": "An IDE-native suite for Storybook.",
-	"version": "0.0.6",
+	"description": "An IDE-native suite for previewing Storybook files.",
+	"version": "0.0.7",
 	"publisher": "async-aesop",
 	"repository": "https://github.com/Async-Aesop/aesop",
 	"engines": {
@@ -12,7 +12,8 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:extension.aesopAwaken"
+		"onCommand:extension.aesopAwaken",
+		"workspaceContains:**/node_modules/@storybook/core/package.json"
 	],
 	"main": "./dist/extension",
 	"contributes": {
@@ -22,12 +23,31 @@
 				"title": "Aesop Awaken"
 			},
 			{
-				"command": "extension.tollTheHour",
-				"title": "Toll the Hour"
-			},
+				"command": "extension.aesopChronicle",
+				"title": "Aesop Chronicle"
+			}
+		],
+		"configuration": {
+			"type": "object",
+			"title": "Configuration",
+			"properties": {
+				"aesop.port": {
+					"type": "number",
+					"default": 8509,
+					"description": "Port number"
+				},
+				"aesop.host": {
+					"type": "string",
+					"default": "localhost",
+					"description": "Host address"
+				}
+			}
+		},
+		"keybindings": [
 			{
-				"command": "extension.getStories",
-				"title": "Get Storybook Stories"
+				"command": "extension.aesopAwaken",
+				"key": "ctrl+k a",
+				"mac": "cmd+k a"
 			}
 		]
 	},
@@ -57,10 +77,9 @@
 		"webpack-cli": "^3.3.10"
 	},
 	"dependencies": {
-		"express": "^4.17.1",
 		"node-netstat": "^1.8.0",
 		"npm": "^6.13.4",
 		"ps-node": "^0.1.6",
-		"vsce": "^1.71.0"
+		"vsce": "^1.71.0",
 	}
 }

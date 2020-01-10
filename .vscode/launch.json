@@ -30,7 +30,7 @@
 			"outFiles": [
 				"${workspaceFolder}/out/test/**/*.js"
 			],
-			"preLaunchTask": "npm: webpack && test-compile"
+			"preLaunchTask": "test-compile"
 		}
 	]
 }
