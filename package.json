@@ -64,8 +64,7 @@
 			"explorer": [
 				{
 					"id": "storybook-view",
-					"name": "Storybook x Aesop",
-					"when": "aesop-awake"
+					"name": "Storybook x Aesop"
 				}
 			]
 		},
@@ -74,8 +73,7 @@
 				{
 					"id": "storybook-aesop",
 					"title": "Storybook",
-					"icon": "resources/SB-logo.svg",
-					"when": "aesop-awake"
+					"icon": "resources/SB-logo.svg"
 				}
 			]
 		}
