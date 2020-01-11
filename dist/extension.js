@@ -1274,13 +1274,6 @@ function activate(context) {
                                                 // fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Port from script":\n${parseInt(retrievedScriptArray[i+1])}\n
                                                 // Port at this moment:\n${PORT}\n`, (err) => {console.log(err)});
                                             }
-                                            else if (i === retrievedScriptArray.length - 1 && foundPFlag === false) {
-                                                //when you have reached the end of the script and found no port flag
-                                                //no process is running, no port is defined, must start SB with add'l args
-                                                // /* OUTPUT LOGGER */
-                                                // fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Script found, but no port flag detected.\n
-                                                // Port when no port flag found:\n${PORT}\n`, (err) => {console.log(err)});
-                                            }
                                         }
                                         ;
                                         //stretch feature add --ci tag to existing package.json w/Node fs
@@ -1292,31 +1285,38 @@ function activate(context) {
                                         switch (platform) {
                                             case 'win32':
                                                 processCommand = 'npm.cmd';
-                                                vscode.window.showInformationMessage(`${processCommand}`);
+                                                //vscode.window.showInformationMessage(`${processCommand}`);
                                                 break;
                                             default:
                                                 processCommand = 'npm';
                                         }
-                                        vscode.window.showWarningMessage(`${process.cwd()}`);
-                                        vscode.window.showInformationMessage(`${rootDir}`);
+                                        // vscode.window.showWarningMessage(`${process.cwd()}`)
+                                        // vscode.window.showInformationMessage(`${rootDir}`);
+                                        const sbCLI = './node_modules/.bin/start-storybook';
+                                        const sbStartIndex = retrievedScriptArray.indexOf('start-storybook');
+                                        retrievedScriptArray[sbStartIndex] = sbCLI;
+                                        retrievedScriptArray.push('--ci');
+                                        //vscode.window.showInformationMessage(sbCLI)
+                                        //vscode.window.showInformationMessage((retrievedScriptArray).join())
                                         //now launch the child process on the port you've derived
-                                        const runSb = child_process.spawn(processCommand, ['run', 'storybook'], { cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+                                        const runSb = child_process.spawn('node', retrievedScriptArray, { cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
                                         statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
-                                        runSb.stdout.setEncoding('utf8');
+                                        -runSb.stdout.setEncoding('utf8');
                                         let counter = 0;
                                         //Storybook outputs three messages to the terminal as it spins up
                                         //grab the port from the last message to listen in on the process
                                         runSb.stdout.on('data', (data) => {
                                             let str = data.toString();
                                             let lines = str.split(" ");
+                                            //vscode.window.showInformationMessage(`lines: ${lines}`);
                                             counter += 1;
-                                            if (counter === 3) {
+                                            if (counter >= 2) {
                                                 for (let i = 165; i < lines.length; i += 1) {
                                                     if (lines[i].includes('localhost')) {
                                                         const path = lines[i];
                                                         const regExp = (/[^0-9]/g);
                                                         PORT = (path.replace(regExp, ""));
-                                                        vscode.window.showInformationMessage(`This is port: ${PORT}`);
+                                                        vscode.window.showInformationMessage(`Storybook is now running on localhost:${PORT}`);
                                                         aesopEmitter.emit('sb_on');
                                                         break;
                                                     }
