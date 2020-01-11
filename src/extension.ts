@@ -411,30 +411,6 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	context.subscriptions.push(openDisposable);
-
-	let disposable3 = vscode.commands.registerCommand('extension.aesopOverwrite', () => {
-
-		panel.webview.html = `
-		<!DOCTYPE html>
-		<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<title>Aesop</title>
-				<style>
-					html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
-					body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
-				</style>
-			</head>
-			<body>
-				<h1>Hello, Ola.</h1>
-				<p>It\'s a pleasure working with you on Aesop.</p>
-				<p>Please wait while Aesop retrieves your Storybook...</p>
-			</body>
-		</html>`
-	});
-
-	context.subscriptions.push(disposable3);
 }
 
 export function deactivate() {
