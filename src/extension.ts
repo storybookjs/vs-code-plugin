@@ -116,16 +116,14 @@ class aesopWebview implements vscode.Webview {
 	</html>`;
 */
 
-//define PORT and host variables to feed the webview content from SB server
-let PORT : number;
-let host : string;
-const aesopEmitter = new events.EventEmitter();
+
 
 export function activate(context: vscode.ExtensionContext) {
 
-	// vscode.window.showInformationMessage(`Port set by default to ${PORT}`);
-	PORT = vscode.workspace.getConfiguration("aesop").get("port");
-	host = vscode.workspace.getConfiguration("aesop").get("host");
+	//define PORT and host variables to feed the webview content from SB server
+	let PORT : number;
+	let host : string = 'localhost';
+	const aesopEmitter = new events.EventEmitter();
 
 	const platform = os.platform();
 	const commands = {
@@ -173,6 +171,7 @@ export function activate(context: vscode.ExtensionContext) {
 			//if the filepath isn't found, show the user what Aesop is reading as the root path
 			if (err) {
 				vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder, ${rootDir}`);
+				throw new Error('Error finding a storybook project')
 			}	else {
 				statusText.show();
 
@@ -185,6 +184,8 @@ export function activate(context: vscode.ExtensionContext) {
 						if (err){
 							vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
 							statusText.dispose();
+							throw new Error('no node process found');
+							
 						} else {
 							//notify the user that Aesop is checking for a running Storybook instances
 							statusText.text = `Reviewing Node processes...`;
@@ -210,6 +211,7 @@ export function activate(context: vscode.ExtensionContext) {
 									//if a port flag has been defined in the process args, retrieve the user's config
 									if (pFlagIndex !== -1){
 										PORT = parseInt(process.arguments[pFlagIndex+1]);
+										aesopEmitter.emit('sb_on')
 									} else {
 										//if no port flag defined, dynamically retrieve port with netstat
 										const netStatProcess = child_process.spawn(command.cmd, command.args);
@@ -220,14 +222,23 @@ export function activate(context: vscode.ExtensionContext) {
 										grepProcess.stdout.on('data', (data) => {
 											const parts = data.split(/\s/).filter(String);
 											PORT = parseInt(parts[3].replace(/[^0-9]/g, ''));
-										});
+											aesopEmitter.emit('sb_on')
+										})
+										
+										netStatProcess.stdout.on('exit', (code) =>{
+											vscode.window.showInformationMessage(`Netstat ended with ${code}`);
+										})
+										
+										grepProcess.stdout.on('exit', (code) =>{
+											vscode.window.showInformationMessage(`Grep ended with ${code}`);
+										})
+										
+
 									}
-									
 									//set foundSb to true to prevent our function from running another process
 									foundSb = true;
 									
 									//once port is known, fire event emitter to instantiate webview
-									aesopEmitter.emit('sb_on')
 									statusText.text = `Retrieving running Storybook process...`;
 
 									// /* OUTPUT LOGGER */
@@ -244,7 +255,7 @@ export function activate(context: vscode.ExtensionContext) {
 							//if no processes matched 'storybook', we will have to spin up the storybook server
 							if (checkedProcesses === true && foundSb === false){
 								
-								//starts by checking for/extracting any port flages from the SB script in the package.json
+								//starts by checking for/extracting any port flags from the SB script in the package.json
 								fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
 									if (err){
 										vscode.window.showErrorMessage(`Aesop is attempting to read ${rootDir}. Is there a package.json file here?`);
@@ -331,6 +342,7 @@ export function activate(context: vscode.ExtensionContext) {
 														const regExp = (/[^0-9]/g);
 														PORT = (path.replace(regExp, ""));
 														vscode.window.showInformationMessage(`This is port: ${PORT}`);
+														aesopEmitter.emit('sb_on')
 														break;
 													}
 												}
@@ -365,53 +377,54 @@ export function activate(context: vscode.ExtensionContext) {
 				} //close depend found, not checked processes
 			}//close else statement in fs.access
 		}) //close fs access
+
+		aesopEmitter.on('sb_on', () => {
+			createAesop(PORT, host);
+		});
+	
+		function createAesop(PORT, host){
+			statusText.hide();
+		
+			vscode.window.showInformationMessage(`Welcome to Aesop Storybook`);
+			const panel = vscode.window.createWebviewPanel(
+				'aesop-sb',
+				'Aesop',
+				vscode.ViewColumn.Beside,
+				{
+					enableCommandUris: true,
+					enableScripts: true,
+					portMapping: [{
+						webviewPort: PORT,
+						extensionHostPort: PORT
+					}],
+					localResourceRoots: [vscode.Uri.file(context.extensionPath)],
+				}
+			);
+	
+			panel.webview.html = `
+			<!DOCTYPE html>
+			<html lang="en">
+				<head>
+					<meta charset="UTF-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+					<title>Aesop</title>
+					<style>
+						html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
+						body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
+					</style>
+				</head>
+				<body>
+					<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
+				</body>
+			</html>`
+		} // close createAesop helper function
+
 	}); //close disposable
 
 	context.subscriptions.push(disposable);
-
-	aesopEmitter.on('sb_on', () => {
-		vscode.commands.executeCommand('extension.aesopChronicle');
-	});
-
-	let openDisposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopChronicle', () => {
-		statusText.hide();
-	
-		vscode.window.showInformationMessage(`Welcome to Aesop Storybook`);
-		const panel = vscode.window.createWebviewPanel(
-			'aesop-sb',
-			'Aesop',
-			vscode.ViewColumn.Beside,
-			{
-				enableCommandUris: true,
-				enableScripts: true,
-				portMapping: [{
-					webviewPort: PORT,
-					extensionHostPort: PORT
-				}],
-				localResourceRoots: [vscode.Uri.file(context.extensionPath)],
-			}
-		);
-
-		panel.webview.html = `
-		<!DOCTYPE html>
-		<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<title>Aesop</title>
-				<style>
-					html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
-					body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
-				</style>
-			</head>
-			<body>
-				<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
-			</body>
-		</html>`
-	});
-
-	context.subscriptions.push(openDisposable);
 }
+
+	
 
 export function deactivate() {
 
