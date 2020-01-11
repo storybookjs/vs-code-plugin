@@ -7,8 +7,6 @@ import * as child_process from 'child_process';
 import * as events from 'events';
 import * as os from 'os';
 
-const aesopEmitter = new events.EventEmitter();
-
 /* ALTERNATE APPROACH W/O PS-NODE LIBRARY
 
 	export async function isProcessRunning(processName: string): Promise<boolean> {
@@ -32,12 +30,102 @@ const aesopEmitter = new events.EventEmitter();
 	const running: boolean = await isProcessRunning('myProcess')
 */
 
+/* CLASSES:
+class aesopWebviewOptions implements vscode.WebviewOptions{
+	constructor(PORT){
+		this.portMapping[0].webviewPort = PORT;
+		this.portMapping[0].extensionHostPort = PORT;
+	}
+	enableCommandUris: boolean = true;
+	enableScripts: boolean = true;
+	portMapping: [{
+		webviewPort: any,
+		extensionHostPort: any
+	}];
+	// localResourceRoots: vscode.Uri[] = [vscode.Uri.file(context.extensionPath)]
+};
+
+class panel implements vscode.WebviewPanel {
+	constructor(html : string){
+		this.webview.html = html;
+	}
+	viewType: 'aesop-sb';
+	title: 'Aesop';
+	webview: aesopWebview;
+	options: {
+		enableFindWidget: false,
+		retainContextWhenHidden: true
+	};
+	viewColumn: vscode.ViewColumn.Beside;
+	active: true;
+	visible: true;
+	dispose(){
+		//write logic in here to keep Storybook running
+	};
+	//we are not messaging right now but we will to preserve state
+	onDidChangeViewState() {
+		return null;
+	};
+	onDidDispose(dispose){
+		return dispose;
+	};
+	reveal() {};
+};
+
+class aesopWebview implements vscode.Webview {
+	constructor(html : string) {
+		this.html = html;
+	}
+	cspSource: string = 'http';
+	html: string;
+	options: aesopWebviewOptions;
+
+	//these are required properties, but we are not yet using messaging
+	asWebviewUri( localResource: vscode.Uri){
+		return localResource;
+	};
+	onDidReceiveMessage(){
+		return null;
+	};
+	postMessage() {
+		return null;
+	};
+}
+*/
+
+/* TEMPLATE HTML
+	let templateHTML = `
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<title>Aesop</title>
+			<style>
+				html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
+				body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
+			</style>
+		</head>
+		<body>
+			<script>
+				const vscode = acquireVsCodeApi();
+				const oldState = vscode.getState() || { value: 0 };
+			</script>
+			<iframe src="http://${host}:${PORT}" width="100%" height="700"></iframe>
+		</body>
+	</html>`;
+*/
+
+//define PORT and host variables to feed the webview content from SB server
+let PORT : number;
+let host : string;
+const aesopEmitter = new events.EventEmitter();
+
 export function activate(context: vscode.ExtensionContext) {
 
-	//define PORT and host variables to feed the webview content from SB server
-	let PORT : number = vscode.workspace.getConfiguration("aesop").get("port");
-	let host : string = vscode.workspace.getConfiguration("aesop").get("host");
-	vscode.window.showInformationMessage(`Port set by default to ${PORT}`);
+	// vscode.window.showInformationMessage(`Port set by default to ${PORT}`);
+	PORT = vscode.workspace.getConfiguration("aesop").get("port");
+	host = vscode.workspace.getConfiguration("aesop").get("host");
 
 	const platform = os.platform();
 	const commands = {
@@ -81,6 +169,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		//first test whether Storybook has been depended into your application
 		fs.access(path.join(rootDir, '/node_modules/@storybook'), (err) => {
+
 			//if the filepath isn't found, show the user what Aesop is reading as the root path
 			if (err) {
 				vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder, ${rootDir}`);
@@ -103,19 +192,22 @@ export function activate(context: vscode.ExtensionContext) {
 							//if the process lookup was able to find running processes, iterate through to review them
 							resultList.forEach((process) => {
 
-								/* OUTPUT LOGGER */
-								fs.writeFile(path.join(rootDir, 'YOLO.txt'), `Attempted launch log:\n`,
-								(err) => {console.log(`Couldn't output process information to YOLO.txt: ${err}`)});
+								// /* OUTPUT LOGGER */
+								// fs.writeFile(path.join(rootDir, 'YOLO.txt'), `Attempted launch log:\n`,
+								// (err) => {console.log(`Couldn't output process information to YOLO.txt: ${err}`)});
 		
 								//check if any running processes are Storybook processes
 								//stretch feature: check for multiple instances of storybook and reconcile
+
 								if(process.arguments[0].includes('storybook')){
+
 									//if so, extract port number and use that value to populate the webview with that contents
 									const pFlagIndex = process.arguments.indexOf('-p');
 
 									//also grab the process id to use netstat in the else condition
 									const processPid = parseInt(process['pid']).toString();
 
+									//if a port flag has been defined in the process args, retrieve the user's config
 									if (pFlagIndex !== -1){
 										PORT = parseInt(process.arguments[pFlagIndex+1]);
 									} else {
@@ -127,23 +219,21 @@ export function activate(context: vscode.ExtensionContext) {
 										grepProcess.stdout.setEncoding('utf8');
 										grepProcess.stdout.on('data', (data) => {
 											const parts = data.split(/\s/).filter(String);
-											PORT = parseInt(parts[3].replace(/[^0-9]/g, ''))
-											aesopEmitter.emit('sb_on')
+											PORT = parseInt(parts[3].replace(/[^0-9]/g, ''));
 										});
 									}
 									
 									//set foundSb to true to prevent our function from running another process
 									foundSb = true;
 									
+									//once port is known, fire event emitter to instantiate webview
+									aesopEmitter.emit('sb_on')
 									statusText.text = `Retrieving running Storybook process...`;
-				
-									//the Aesop event emitter will now create the webview function 
-									aesopEmitter.emit('sb_on');
 
-									/* OUTPUT LOGGER */
-									fs.appendFile(path.join(rootDir, 'YOLO.txt'), `This process matches for 'storybook':\n
-									PID: ${process.pid}, COMMAND:${process.command}, ARGUMENTS: ${process.arguments}\n
-									PORT has been assigned to: ${PORT}`, (err) => {console.log(err)});
+									// /* OUTPUT LOGGER */
+									// fs.appendFile(path.join(rootDir, 'YOLO.txt'), `This process matches for 'storybook':\n
+									// PID: ${process.pid}, COMMAND:${process.command}, ARGUMENTS: ${process.arguments}\n
+									// PORT has been assigned to: ${PORT}`, (err) => {console.log(err)});
 
 								}//---> close if process.arguments[0] contains storybook
 							}) //---> close resultList.forEach()
@@ -167,28 +257,33 @@ export function activate(context: vscode.ExtensionContext) {
 										let packageJSON = JSON.parse(data.toString());
 										let storybookScript = packageJSON.scripts.storybook;
 					
-										/* OUTPUT LOGGER */
-										fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Here is the script for "storybook":\n
-										${storybookScript}`, (err) => {console.log(err)});
+										// /* OUTPUT LOGGER */
+										// fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Here is the script for "storybook":\n
+										// ${storybookScript}`, (err) => {console.log(err)});
 										
 										//iterate through the text string (stored on "storybook" key) and parse out port flag
 										//it is more helpful to split it into an array separated by whitespace to grab this
 										let retrievedScriptArray = storybookScript.split(' ');
 										let foundPFlag = false;
+
 										for (let i = 0; i < retrievedScriptArray.length; i++){
 											//stretch goal: add logic for other flags as we implement further functionality
 											if (retrievedScriptArray[i] === '-p'){
 												PORT = parseInt(retrievedScriptArray[i+1]);
 												foundPFlag = true;
-												/* OUTPUT LOGGER */
-												fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Port from script":\n${parseInt(retrievedScriptArray[i+1])}\n
-												Port at this moment:\n${PORT}\n`, (err) => {console.log(err)});
+
+												// /* OUTPUT LOGGER */
+												// fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Port from script":\n${parseInt(retrievedScriptArray[i+1])}\n
+												// Port at this moment:\n${PORT}\n`, (err) => {console.log(err)});
+
 											} else if (i === retrievedScriptArray.length-1 && foundPFlag === false){
 												//when you have reached the end of the script and found no port flag
 
-												/* OUTPUT LOGGER */
-												fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Script found, but no port flag detected.\n
-												Port when no port flag found:\n${PORT}\n`, (err) => {console.log(err)});
+												//no process is running, no port is defined, must start SB with add'l args
+
+												// /* OUTPUT LOGGER */
+												// fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Script found, but no port flag detected.\n
+												// Port when no port flag found:\n${PORT}\n`, (err) => {console.log(err)});
 											}
 										};
 
@@ -313,46 +408,33 @@ export function activate(context: vscode.ExtensionContext) {
 				<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
 			</body>
 		</html>`
-    
-		// const aesopWebview : vscode.Webview = {
-		// 	cspSource: null,
-		// 	html: aesopPreviewHTML,
-		// 	options: {
-		// 		enableCommandUris: true,
-		// 		enableScripts: true,
-		// 		portMapping: [{
-		// 			webviewPort: PORT,
-		// 			extensionHostPort: PORT,
-		// 		}],
-		// 		localResourceRoots: [vscode.Uri.file(context.extensionPath)]
-		// 	},
-		// 	asWebviewUri(){};
-		// 	onDidReceiveMessage(){};
-		// 	postMessage() {}
-		// }
-
-
-		// const panel : vscode.WebviewPanel = {
-		// 	viewType: 'aesop-sb',
-		// 	active: true,
-		// 	options: {
-		// 		enableFindWidget: false,
-		// 		retainContextWhenHidden: true
-		// 	},
-		// 	title: 'Aesop',
-		// 	viewColumn: vscode.ViewColumn.Beside,
-		// 	visible: true,
-		// 	webview: aesopWebview,
-
-		// 	dispose(){},
-		// 	onDidChangeViewState() : vscode.Event<vscode.WebviewPanelOnDidChangeViewStateEvent>{},
-		// 	onDidDispose(){},
-		// 	reveal() {},
-		// }
-		
 	});
 
 	context.subscriptions.push(openDisposable);
+
+	let disposable3 = vscode.commands.registerCommand('extension.aesopOverwrite', () => {
+
+		panel.webview.html = `
+		<!DOCTYPE html>
+		<html lang="en">
+			<head>
+				<meta charset="UTF-8">
+				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<title>Aesop</title>
+				<style>
+					html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
+					body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
+				</style>
+			</head>
+			<body>
+				<h1>Hello, Ola.</h1>
+				<p>It\'s a pleasure working with you on Aesop.</p>
+				<p>Please wait while Aesop retrieves your Storybook...</p>
+			</body>
+		</html>`
+	});
+
+	context.subscriptions.push(disposable3);
 }
 
 export function deactivate() {
