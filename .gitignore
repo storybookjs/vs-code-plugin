@@ -1,5 +1,7 @@
 .gitignore
 /node_modules
 ./out/
-vsc-extension-quickstart.md
-vscode_brief.txt
+arlotest.js
+
+#ignore dist folder
+/dist
