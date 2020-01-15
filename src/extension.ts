@@ -262,13 +262,6 @@ export function activate(context: vscode.ExtensionContext) {
 										//iterate through the text string (stored on "storybook" key) and parse out port flag
 										//it is more helpful to split it into an array separated by whitespace to grab this
 										let retrievedScriptArray = storybookScript.split(' ');
-
-										for (let i = 0; i < retrievedScriptArray.length; i++){
-											//stretch goal: add logic for other flags as we implement further functionality
-											if (retrievedScriptArray[i] === '-p'){
-												PORT = parseInt(retrievedScriptArray[i+1]);
-											}
-										};
 										
 										//@TODO if script already includes --ci, no need to add it
 

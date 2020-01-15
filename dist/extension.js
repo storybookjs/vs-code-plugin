@@ -1254,13 +1254,6 @@ function activate(context) {
                                     //iterate through the text string (stored on "storybook" key) and parse out port flag
                                     //it is more helpful to split it into an array separated by whitespace to grab this
                                     let retrievedScriptArray = storybookScript.split(' ');
-                                    for (let i = 0; i < retrievedScriptArray.length; i++) {
-                                        //stretch goal: add logic for other flags as we implement further functionality
-                                        if (retrievedScriptArray[i] === '-p') {
-                                            PORT = parseInt(retrievedScriptArray[i + 1]);
-                                        }
-                                    }
-                                    ;
                                     //@TODO if script already includes --ci, no need to add it
                                     //older Windows systems support here: check platform, change process command accordingly
                                     let platform = os.platform();
@@ -1305,16 +1298,6 @@ function activate(context) {
                                                     break;
                                                 }
                                             }
-                                            // let sbPortFlag = '-p';
-                                            //   if (lines.includes(sbPortFlag)){
-                                            //     const pFlagIndex = lines.indexOf(sbPortFlag);
-                                            //     vscode.window.showInformationMessage(`This is pFlagIndex: `, pFlagIndex);
-                                            //     if(pFlagIndex !== -1) {
-                                            //       PORT = parseInt(lines[pFlagIndex + 1]);
-                                            // 			vscode.window.showInformationMessage(`Storybook is now running on port: ${PORT}`);
-                                            // 			aesopEmitter.emit('sb_on');
-                                            //     }
-                                            // 	}
                                         }
                                     });
                                     runSb.on('error', (err) => {
