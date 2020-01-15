@@ -21,10 +21,6 @@
 			{
 				"command": "extension.aesopAwaken",
 				"title": "Aesop Awaken"
-			},
-			{
-				"command": "extension.aesopChronicle",
-				"title": "Aesop Chronicle"
 			}
 		],
 		"configuration": {
