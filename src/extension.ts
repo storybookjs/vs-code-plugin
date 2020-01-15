@@ -192,10 +192,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 							//if the process lookup was able to find running processes, iterate through to review them
 							resultList.forEach((process) => {
-
-								// /* OUTPUT LOGGER */
-								// fs.writeFile(path.join(rootDir, 'YOLO.txt'), `Attempted launch log:\n`,
-								// (err) => {console.log(`Couldn't output process information to YOLO.txt: ${err}`)});
 		
 								//check if any running processes are Storybook processes
 								//stretch feature: check for multiple instances of storybook and reconcile
@@ -243,19 +239,13 @@ export function activate(context: vscode.ExtensionContext) {
 									//once port is known, fire event emitter to instantiate webview
 									statusText.text = `Retrieving running Storybook process...`;
 
-									// /* OUTPUT LOGGER */
-									// fs.appendFile(path.join(rootDir, 'YOLO.txt'), `This process matches for 'storybook':\n
-									// PID: ${process.pid}, COMMAND:${process.command}, ARGUMENTS: ${process.arguments}\n
-									// PORT has been assigned to: ${PORT}`, (err) => {console.log(err)});
-
 								}//---> close if process.arguments[0] contains storybook
 							}) //---> close resultList.forEach()
 
 							//having checked running Node processes, set that variable to true
-							checkedProcesses = true;
 						
 							//if no processes matched 'storybook', we will have to spin up the storybook server
-							if (checkedProcesses === true && foundSb === false){
+							if (foundSb === false){
 								
 								//starts by checking for/extracting any port flags from the SB script in the package.json
 								fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
@@ -264,36 +254,23 @@ export function activate(context: vscode.ExtensionContext) {
 										statusText.dispose();
 									}	else {
 										statusText.text = `Checking package.json...`;
-										statusText.show();
 
 										//enter the package.JSON file and retrieve its contents as an object
 										let packageJSON = JSON.parse(data.toString());
 										let storybookScript = packageJSON.scripts.storybook;
-					
-										// /* OUTPUT LOGGER */
-										// fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Here is the script for "storybook":\n
-										// ${storybookScript}`, (err) => {console.log(err)});
 										
 										//iterate through the text string (stored on "storybook" key) and parse out port flag
 										//it is more helpful to split it into an array separated by whitespace to grab this
 										let retrievedScriptArray = storybookScript.split(' ');
-										let foundPFlag = false;
 
 										for (let i = 0; i < retrievedScriptArray.length; i++){
 											//stretch goal: add logic for other flags as we implement further functionality
 											if (retrievedScriptArray[i] === '-p'){
 												PORT = parseInt(retrievedScriptArray[i+1]);
-												foundPFlag = true;
-
-												// /* OUTPUT LOGGER */
-												// fs.appendFile(path.join(rootDir, 'YOLO.txt'), `Port from script":\n${parseInt(retrievedScriptArray[i+1])}\n
-												// Port at this moment:\n${PORT}\n`, (err) => {console.log(err)});
-
 											}
 										};
-
-										//stretch feature add --ci tag to existing package.json w/Node fs
-										//e.g. process.scripts.storybook = `${storybookScript} --ci`
+										
+										//@TODO if script already includes --ci, no need to add it
 
 										//older Windows systems support here: check platform, change process command accordingly
 										let platform : NodeJS.Platform = os.platform();
@@ -346,17 +323,6 @@ export function activate(context: vscode.ExtensionContext) {
 														aesopEmitter.emit('sb_on')
 														break;
 													}
-												}
-
-											let sbPortFlag = '-p';
-											  if (lines.includes(sbPortFlag)){
-											    const pFlagIndex = lines.indexOf(sbPortFlag);
-											    vscode.window.showInformationMessage(`This is pFlagIndex: `, pFlagIndex);
-											    if(pFlagIndex !== -1) {
-											      PORT = parseInt(lines[pFlagIndex + 1]);
-														vscode.window.showInformationMessage(`Storybook is now running on port: ${PORT}`);
-														aesopEmitter.emit('sb_on');
-											    }
 												}
 											}
 										})
