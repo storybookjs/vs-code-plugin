@@ -1258,27 +1258,14 @@ function activate(context) {
                                     //older Windows systems support here: check platform, change process command accordingly
                                     let platform = os.platform();
                                     vscode.window.showInformationMessage(`Your platform is ${platform}`);
-                                    // let processCommand : string;
-                                    // switch (platform) {
-                                    // 	case 'win32':
-                                    // 	 processCommand = 'npm.cmd';
-                                    // 	 //vscode.window.showInformationMessage(`${processCommand}`);
-                                    // 	break;
-                                    // 	default:
-                                    // 		processCommand = 'npm';
-                                    // }
-                                    // vscode.window.showWarningMessage(`${process.cwd()}`)
-                                    // vscode.window.showInformationMessage(`${rootDir}`);
                                     const sbCLI = './node_modules/.bin/start-storybook';
                                     const sbStartIndex = retrievedScriptArray.indexOf('start-storybook');
                                     retrievedScriptArray[sbStartIndex] = sbCLI;
                                     retrievedScriptArray.push('--ci');
-                                    //vscode.window.showInformationMessage(sbCLI)
-                                    //vscode.window.showInformationMessage((retrievedScriptArray).join())
                                     //now launch the child process on the port you've derived
                                     const runSb = child_process.spawn('node', retrievedScriptArray, { cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
                                     statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
-                                    -runSb.stdout.setEncoding('utf8');
+                                    runSb.stdout.setEncoding('utf8');
                                     let counter = 0;
                                     //Storybook outputs three messages to the terminal as it spins up
                                     //grab the port from the last message to listen in on the process
@@ -1345,7 +1332,7 @@ function activate(context) {
 				</head>
 				<body>
 					<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
-					<p>Counter = 0</p>
+					<p>Counter = 2</p>
 				</body>
 			</html>`;
         } // close createAesop helper function

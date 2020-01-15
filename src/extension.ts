@@ -142,6 +142,7 @@ export function activate(context: vscode.ExtensionContext) {
 	};
 		
 	const command = commands[platform];
+//@TODO: if aesop already opened sb in webview - subsequent calls to aesop should not open a new webview
 
 	//set context "aesop-awake" to true; enabling views
 	vscode.commands.executeCommand("setContext", "aesop-awake", true);
@@ -360,7 +361,7 @@ export function activate(context: vscode.ExtensionContext) {
 				</head>
 				<body>
 					<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
-					<p>Counter = 0</p>
+					<p>Counter = 2</p>
 				</body>
 			</html>`
 		} // close createAesop helper function
