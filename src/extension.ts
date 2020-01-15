@@ -268,19 +268,6 @@ export function activate(context: vscode.ExtensionContext) {
 										//older Windows systems support here: check platform, change process command accordingly
 										let platform : NodeJS.Platform = os.platform();
 										vscode.window.showInformationMessage(`Your platform is ${platform}`);
-										let processCommand : string;
-
-										switch (platform) {
-											case 'win32':
-											 processCommand = 'npm.cmd';
-											 //vscode.window.showInformationMessage(`${processCommand}`);
-											break;
-											default:
-												processCommand = 'npm';
-										}
-
-										// vscode.window.showWarningMessage(`${process.cwd()}`)
-										// vscode.window.showInformationMessage(`${rootDir}`);
 										
 										const sbCLI = './node_modules/.bin/start-storybook'
 										const sbStartIndex = retrievedScriptArray.indexOf('start-storybook')
@@ -374,6 +361,7 @@ export function activate(context: vscode.ExtensionContext) {
 				</head>
 				<body>
 					<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
+					<p>Counter = 0</p>
 				</body>
 			</html>`
 		} // close createAesop helper function
