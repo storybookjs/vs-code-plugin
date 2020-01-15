@@ -273,12 +273,11 @@ export function activate(context: vscode.ExtensionContext) {
 										const sbStartIndex = retrievedScriptArray.indexOf('start-storybook')
 										retrievedScriptArray[sbStartIndex] = sbCLI;
 										retrievedScriptArray.push('--ci')
-										//vscode.window.showInformationMessage(sbCLI)
-										//vscode.window.showInformationMessage((retrievedScriptArray).join())
+
 										//now launch the child process on the port you've derived
 										const runSb = child_process.spawn('node',retrievedScriptArray, {cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
 
-										statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;-
+										statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
 
 										runSb.stdout.setEncoding('utf8');
 
