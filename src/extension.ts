@@ -152,9 +152,10 @@ export function activate(context: vscode.ExtensionContext) {
 	statusText.color = "#FFFFFF";
 	statusText.command = undefined;
 	statusText.tooltip = "Aesop status";
-
+	
 	//create disposable to register Aesop Awaken command to subscriptions
 	let disposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
+		statusText.show();
 
 		//declare variable to toggle whether running Node processes have been checked
 		let checkedProcesses : Boolean = false;
@@ -173,11 +174,10 @@ export function activate(context: vscode.ExtensionContext) {
 				vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder, ${rootDir}`);
 				throw new Error('Error finding a storybook project')
 			}	else {
-				statusText.show();
+				statusText.text = "`Aesop found Storybook dependency"
 
 				//check to see if a storybook node process is already running
-				if (checkedProcesses === false){
-					ps.lookup(
+					ps.lookup (
 						{command: 'node',
 						psargs: 'ux'
 					}, (err : Error, resultList : any) => {
@@ -221,8 +221,10 @@ export function activate(context: vscode.ExtensionContext) {
 										grepProcess.stdout.setEncoding('utf8');
 										grepProcess.stdout.on('data', (data) => {
 											const parts = data.split(/\s/).filter(String);
-											PORT = parseInt(parts[3].replace(/[^0-9]/g, ''));
-											aesopEmitter.emit('sb_on')
+											//@TODO: refactor for platform specific or grab port dynamically
+											const partIndex = (platform === 'win32') ? 2 : 3;
+											PORT = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
+											aesopEmitter.emit('sb_on');
 										})
 										
 										netStatProcess.stdout.on('exit', (code) =>{
@@ -372,8 +374,7 @@ export function activate(context: vscode.ExtensionContext) {
 								})
 							} //close spin up server
 						}; //CLOSE else psLookup
-					}); //close ps LOOKUP
-				} //close depend found, not checked processes
+					}); //close ps LOOKUP //close depend found, not checked processes
 			}//close else statement in fs.access
 		}) //close fs access
 

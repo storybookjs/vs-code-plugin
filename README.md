@@ -9,7 +9,9 @@ If you are working in a project folder on a Storybook-enabled application, Aesop
 If you're used to starting up your Storybook from the CLI with additional arguments, Aesop won't impede your workflow — it understands Node processes, and will happily retrieve your running Storybook.
 
 ## Requirements
-Aesop's production build currently only depends on ps-node. This is used to simplify certain lookup functions while accessing running Node processes, but will likely be removed in a future version to make Aesop dependency-free.
+Aesop only depends on the ps-node library. This is used to simplify certain lookup functions while accessing running Node processes, but will likely be removed in a future version to make Aesop dependency-free.
+
+If your system does not support Netstat...
 
 ## Extension Settings
 Because Aesop is lightweight, it is also minimal config. It contributes one hotkey command chord to activate: CTRL / CMD K + A
