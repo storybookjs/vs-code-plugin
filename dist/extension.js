@@ -1032,112 +1032,6 @@ const ps = __webpack_require__(/*! ps-node */ "./node_modules/ps-node/index.js")
 const child_process = __webpack_require__(/*! child_process */ "child_process");
 const events = __webpack_require__(/*! events */ "events");
 const os = __webpack_require__(/*! os */ "os");
-/* ALTERNATE APPROACH W/O PS-NODE LIBRARY
-
-    export async function isProcessRunning(processName: string): Promise<boolean> {
-    const cmd = (() => {
-        switch (process.platform) {
-            case 'win32': return `tasklist`
-            case 'darwin': return `ps -ax | grep ${processName}`
-            case 'linux': return `ps -A`
-            default: return false
-        }
-    })()
-
-    return new Promise((resolve, reject) => {
-        require('child_process').exec(cmd, (err: Error, stdout: string, stderr: string) => {
-            if (err) reject(err)
-
-            resolve(stdout.toLowerCase().indexOf(processName.toLowerCase()) > -1)
-        })
-    })
-    }
-    const running: boolean = await isProcessRunning('myProcess')
-*/
-/* CLASSES:
-class aesopWebviewOptions implements vscode.WebviewOptions{
-    constructor(PORT){
-        this.portMapping[0].webviewPort = PORT;
-        this.portMapping[0].extensionHostPort = PORT;
-    }
-    enableCommandUris: boolean = true;
-    enableScripts: boolean = true;
-    portMapping: [{
-        webviewPort: any,
-        extensionHostPort: any
-    }];
-    // localResourceRoots: vscode.Uri[] = [vscode.Uri.file(context.extensionPath)]
-};
-
-class panel implements vscode.WebviewPanel {
-    constructor(html : string){
-        this.webview.html = html;
-    }
-    viewType: 'aesop-sb';
-    title: 'Aesop';
-    webview: aesopWebview;
-    options: {
-        enableFindWidget: false,
-        retainContextWhenHidden: true
-    };
-    viewColumn: vscode.ViewColumn.Beside;
-    active: true;
-    visible: true;
-    dispose(){
-        //write logic in here to keep Storybook running
-    };
-    //we are not messaging right now but we will to preserve state
-    onDidChangeViewState() {
-        return null;
-    };
-    onDidDispose(dispose){
-        return dispose;
-    };
-    reveal() {};
-};
-
-class aesopWebview implements vscode.Webview {
-    constructor(html : string) {
-        this.html = html;
-    }
-    cspSource: string = 'http';
-    html: string;
-    options: aesopWebviewOptions;
-
-    //these are required properties, but we are not yet using messaging
-    asWebviewUri( localResource: vscode.Uri){
-        return localResource;
-    };
-    onDidReceiveMessage(){
-        return null;
-    };
-    postMessage() {
-        return null;
-    };
-}
-*/
-/* TEMPLATE HTML
-    let templateHTML = `
-    <!DOCTYPE html>
-    <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Aesop</title>
-            <style>
-                html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
-                body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
-            </style>
-        </head>
-        <body>
-            <script>
-                const vscode = acquireVsCodeApi();
-                const oldState = vscode.getState() || { value: 0 };
-            </script>
-            <iframe src="http://${host}:${PORT}" width="100%" height="700"></iframe>
-        </body>
-    </html>`;
-*/
 function activate(context) {
     //define PORT and host variables to feed the webview content from SB server
     let PORT;
@@ -1159,6 +1053,7 @@ function activate(context) {
         },
     };
     const command = commands[platform];
+    //@TODO: if aesop already opened sb in webview - subsequent calls to aesop should not open a new webview
     //set context "aesop-awake" to true; enabling views
     vscode.commands.executeCommand("setContext", "aesop-awake", true);
     //create the status bar to let the user know what Aesop is doing
