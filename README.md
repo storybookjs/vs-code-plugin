@@ -1,3 +1,5 @@
+![AesopLogo_small](https://user-images.githubusercontent.com/55175891/72542775-b433f880-3852-11ea-8483-02066bc9e8ca.jpg)
+
 # AESOP
 Meet Aesop: the lightweight Storybook preview extension.
  
