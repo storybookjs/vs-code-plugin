@@ -45,6 +45,8 @@ export function activate(context: vscode.ExtensionContext) {
 	
 	//create disposable to register Aesop Awaken command to subscriptions
 	let disposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
+		const outputConsole = vscode.window.createOutputChannel('something')
+		outputConsole.appendLine('testing')
 		statusText.show();
 
 		//declare variable to toggle whether running Node processes have been checked
@@ -79,37 +81,50 @@ export function activate(context: vscode.ExtensionContext) {
 						} else {
 							//notify the user that Aesop is checking for a running Storybook instances
 							statusText.text = `Reviewing Node processes...`;
+							// vscode.window.showInformationMessage('hello')
 
 							//if the process lookup was able to find running processes, iterate through to review them
 							resultList.forEach((process) => {
+								// outputConsole.append(`process: ${JSON.stringify(process)}`)
 		
 								//check if any running processes are Storybook processes
 								//stretch feature: check for multiple instances of storybook and reconcile
 
-								if(process.arguments[0].includes('storybook')){
+								if(process.arguments[0].includes('node_modules') && process.arguments[0].includes('storybook')){
+									outputConsole.append(`process.arguments: ${process.arguments[0]}`)
+									vscode.window.showInformationMessage(`process.arguments: `, process.arguments)
 
 									//if so, extract port number and use that value to populate the webview with that contents
 									const pFlagIndex = process.arguments.indexOf('-p');
 
 									//also grab the process id to use netstat in the else condition
 									const processPid = parseInt(process['pid']).toString();
+									// outputConsole.appendLine(`processPid: ${processPid}`)
+
 
 									//if a port flag has been defined in the process args, retrieve the user's config
 									if (pFlagIndex !== -1){
 										PORT = parseInt(process.arguments[pFlagIndex+1]);
+										vscode.window.showInformationMessage('line 101, we found port from sb process')
 										aesopEmitter.emit('sb_on')
 									} else {
+										outputConsole.appendLine(`hit inside netstat stuff`)
 										//if no port flag defined, dynamically retrieve port with netstat
 										const netStatProcess = child_process.spawn(command.cmd, command.args);
 										const grepProcess = child_process.spawn('grep', [processPid]);
+										vscode.window.showInformationMessage('right after netstat child declaraction', processPid);
 
 										netStatProcess.stdout.pipe(grepProcess.stdin);
 										grepProcess.stdout.setEncoding('utf8');
 										grepProcess.stdout.on('data', (data) => {
+											// vscode.window.showInformationMessage(`inside grep on data`);
 											const parts = data.split(/\s/).filter(String);
 											//@TODO: refactor for platform specific or grab port dynamically
-											const partIndex = (platform === 'win32') ? 2 : 3;
+											const partIndex = (platform === 'win32') ? 1 : 3;
+											console.log(parts)
+											// fs.writeFile(rootDir + 'yolo.txt', parts)
 											PORT = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
+											vscode.window.showInformationMessage(`This is inside GREP Port`, PORT.toString());
 											aesopEmitter.emit('sb_on');
 										})
 										
@@ -136,7 +151,7 @@ export function activate(context: vscode.ExtensionContext) {
 						
 							//if no processes matched 'storybook', we will have to spin up the storybook server
 							if (foundSb === false){
-								
+								vscode.window.showInformationMessage('did not find storybook')
 								//starts by checking for/extracting any port flags from the SB script in the package.json
 								fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
 									if (err){
@@ -163,9 +178,20 @@ export function activate(context: vscode.ExtensionContext) {
 										const sbStartIndex = retrievedScriptArray.indexOf('start-storybook')
 										retrievedScriptArray[sbStartIndex] = sbCLI;
 										retrievedScriptArray.push('--ci')
-
+										
+						
+										
 										//now launch the child process on the port you've derived
-										const runSb = child_process.spawn('node',retrievedScriptArray, {cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+										let runSb;
+										if (platform === 'win32') {
+											runSb = child_process.spawn('cmd.exe', {cwd: rootDir})
+											runSb.stdin.write('npm run storybook')
+											// runSb = child_process.spawn('npm.cmd', ['run', 'storybook'], {cwd: rootDir})
+											vscode.window.showInformationMessage(`your platform is: `, platform, `spun up child process`)
+										} else {
+											vscode.window.showInformationMessage(`I am not running this`)
+											runSb =	child_process.spawn('node', retrievedScriptArray, {cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+										}
 
 										statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
 
@@ -177,17 +203,21 @@ export function activate(context: vscode.ExtensionContext) {
 										//grab the port from the last message to listen in on the process
 
 										runSb.stdout.on('data', (data) => {
-											let str = data.toString();
-											let lines = str.split(" ");
-											//vscode.window.showInformationMessage(`lines: ${lines}`);
+											let str = data.toString().split(" ");
+											//vscode.window.showInformationMessage(`str: ${str}`);
+											outputConsole.append(`str: ${str}`)
 											counter += 1;
+											outputConsole.append(`counter: ${counter}`)
 											if (counter >= 2) {
-												for (let i = 165; i < lines.length; i += 1){
-													if(lines[i].includes('localhost')) {
-					
-														const path = lines[i];
+												outputConsole.append(`IF COUNTER HIT, ${counter}`)
+												for (let i = 165; i < str.length; i += 1){
+													if(str[i].includes('localhost')) {
+														outputConsole.append('hello inside localhost line')
+														const path = str[i];
+														outputConsole.append(`path is ${path}`)
 														const regExp = (/[^0-9]/g);
 														PORT = (path.replace(regExp, ""));
+														outputConsole.append(`port is ${PORT}`)
 														vscode.window.showInformationMessage(`Storybook is now running on localhost:${PORT}`);
 														aesopEmitter.emit('sb_on')
 														break;
@@ -219,7 +249,6 @@ export function activate(context: vscode.ExtensionContext) {
 	
 		function createAesop(PORT, host){
 			statusText.hide();
-		
 			vscode.window.showInformationMessage(`Welcome to Aesop Storybook`);
 			const panel = vscode.window.createWebviewPanel(
 				'aesop-sb',
@@ -250,7 +279,7 @@ export function activate(context: vscode.ExtensionContext) {
 				</head>
 				<body>
 					<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
-					<p>Counter = 2</p>
+					<p>Counter = 3</p>
 				</body>
 			</html>`
 		} // close createAesop helper function
