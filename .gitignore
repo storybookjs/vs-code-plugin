@@ -1,7 +1,5 @@
 .gitignore
 /node_modules
-./out/
-arlotest.js
 
 #ignore dist folder
 /dist

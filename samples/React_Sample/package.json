@@ -1,0 +1,36 @@
+{
+  "name": "aesop-react-demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server/server.js",
+  "scripts": {
+    "storybook": "start-storybook"
+  },
+  "author": "samanthasalley",
+  "license": "ISC",
+  "dependencies": {
+    "path": "^0.12.7",
+    "pg": "^7.12.1",
+    "react": "^16.5.2",
+    "redux": "^3.7.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.1.2",
+    "@babel/helper-module-imports": "^7.8.3",
+    "@babel/preset-env": "^7.1.0",
+    "@babel/preset-react": "^7.0.0",
+    "@storybook/addon-actions": "^5.3.3",
+    "@storybook/react": "^5.3.3",
+    "babel-loader": "^8.0.4",
+    "css-loader": "^1.0.1",
+    "file-loader": "^4.0.0",
+    "html-webpack-plugin": "^3.2.0",
+    "morgan": "^1.9.1",
+    "style-loader": "^0.23.1",
+    "url-loader": "^2.0.1",
+    "webpack": "^4.20.2",
+    "webpack-cli": "^3.1.2",
+    "webpack-dev-server": "^3.1.9",
+    "webpack-hot-middleware": "^2.24.3"
+  }
+}
