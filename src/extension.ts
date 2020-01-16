@@ -179,12 +179,9 @@ export function activate(context: vscode.ExtensionContext) {
 										//now launch the child process on the port you've derived
 										let runSb;
 										if (platform === 'win32') {
-											runSb = child_process.spawn('cmd.exe', {cwd: rootDir})
-											runSb.stdin.write('npm run storybook')
-											// runSb = child_process.spawn('npm.cmd', ['run', 'storybook'], {cwd: rootDir})
+											runSb = child_process.spawn('npm.cmd', ['run', 'storybook'], {cwd: rootDir})
 											vscode.window.showInformationMessage(`your platform is: `, platform, `spun up child process`)
 										} else {
-											vscode.window.showInformationMessage(`I am not running this`)
 											runSb =	child_process.spawn('node', retrievedScriptArray, {cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
 										}
 
