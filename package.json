@@ -4,7 +4,7 @@
 	"description": "An IDE-native suite for previewing Storybook.",
 	"version": "0.1.0",
 	"publisher": "async-aesop",
-	"repository": "https://github.com/Async-Aesop/aesop",
+	"repository": "https://github.com/oslabs-beta/aesop-for-storybook",
 	"engines": {
 		"vscode": "^1.41.0"
 	},
