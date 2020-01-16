@@ -99,32 +99,26 @@ export function activate(context: vscode.ExtensionContext) {
 
 									//also grab the process id to use netstat in the else condition
 									const processPid = parseInt(process['pid']).toString();
-									// outputConsole.appendLine(`processPid: ${processPid}`)
 
 
 									//if a port flag has been defined in the process args, retrieve the user's config
 									if (pFlagIndex !== -1){
 										PORT = parseInt(process.arguments[pFlagIndex+1]);
-										vscode.window.showInformationMessage('line 101, we found port from sb process')
 										aesopEmitter.emit('sb_on')
 									} else {
 										outputConsole.appendLine(`hit inside netstat stuff`)
 										//if no port flag defined, dynamically retrieve port with netstat
 										const netStatProcess = child_process.spawn(command.cmd, command.args);
 										const grepProcess = child_process.spawn('grep', [processPid]);
-										vscode.window.showInformationMessage('right after netstat child declaraction', processPid);
 
 										netStatProcess.stdout.pipe(grepProcess.stdin);
 										grepProcess.stdout.setEncoding('utf8');
 										grepProcess.stdout.on('data', (data) => {
-											// vscode.window.showInformationMessage(`inside grep on data`);
 											const parts = data.split(/\s/).filter(String);
 											//@TODO: refactor for platform specific or grab port dynamically
 											const partIndex = (platform === 'win32') ? 1 : 3;
 											console.log(parts)
-											// fs.writeFile(rootDir + 'yolo.txt', parts)
 											PORT = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
-											vscode.window.showInformationMessage(`This is inside GREP Port`, PORT.toString());
 											aesopEmitter.emit('sb_on');
 										})
 										
@@ -173,7 +167,8 @@ export function activate(context: vscode.ExtensionContext) {
 										//older Windows systems support here: check platform, change process command accordingly
 										let platform : NodeJS.Platform = os.platform();
 										vscode.window.showInformationMessage(`Your platform is ${platform}`);
-										
+
+
 										const sbCLI = './node_modules/.bin/start-storybook'
 										const sbStartIndex = retrievedScriptArray.indexOf('start-storybook')
 										retrievedScriptArray[sbStartIndex] = sbCLI;
@@ -279,6 +274,7 @@ export function activate(context: vscode.ExtensionContext) {
 				</head>
 				<body>
 					<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
+					<p>Counter = 3</p>
 				</body>
 			</html>`
 		} // close createAesop helper function
