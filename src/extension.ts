@@ -31,7 +31,7 @@ export function activate(context: vscode.ExtensionContext) {
 	};
 		
 	const command = commands[platform];
-//@TODO: if aesop already opened sb in webview - subsequent calls to aesop should not open a new webview
+	//@TODO: if aesop already opened sb in webview - subsequent calls to aesop should not open a new webview
 
 	//set context "aesop-awake" to true; enabling views
 	vscode.commands.executeCommand("setContext", "aesop-awake", true);
@@ -66,7 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
 				vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder, ${rootDir}`);
 				throw new Error('Error finding a storybook project')
 			}	else {
-				statusText.text = "`Aesop found Storybook dependency"
+				statusText.text = "Aesop found a Storybook project."
 
 				//check to see if a storybook node process is already running
 					ps.lookup (
@@ -76,30 +76,26 @@ export function activate(context: vscode.ExtensionContext) {
 						if (err){
 							vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
 							statusText.dispose();
-							throw new Error('no node process found');
+							throw new Error('Failed looking for running Node processes.');
 							
 						} else {
 							//notify the user that Aesop is checking for a running Storybook instances
 							statusText.text = `Reviewing Node processes...`;
-							// vscode.window.showInformationMessage('hello')
 
 							//if the process lookup was able to find running processes, iterate through to review them
 							resultList.forEach((process) => {
-								// outputConsole.append(`process: ${JSON.stringify(process)}`)
 		
 								//check if any running processes are Storybook processes
 								//stretch feature: check for multiple instances of storybook and reconcile
 
 								if(process.arguments[0].includes('node_modules') && process.arguments[0].includes('storybook')){
 									outputConsole.append(`process.arguments: ${process.arguments[0]}`)
-									vscode.window.showInformationMessage(`process.arguments: `, process.arguments)
 
 									//if so, extract port number and use that value to populate the webview with that contents
 									const pFlagIndex = process.arguments.indexOf('-p');
 
 									//also grab the process id to use netstat in the else condition
 									const processPid = parseInt(process['pid']).toString();
-
 
 									//if a port flag has been defined in the process args, retrieve the user's config
 									if (pFlagIndex !== -1){
@@ -145,7 +141,7 @@ export function activate(context: vscode.ExtensionContext) {
 						
 							//if no processes matched 'storybook', we will have to spin up the storybook server
 							if (foundSb === false){
-								vscode.window.showInformationMessage('did not find storybook')
+								
 								//starts by checking for/extracting any port flags from the SB script in the package.json
 								fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
 									if (err){
@@ -166,25 +162,18 @@ export function activate(context: vscode.ExtensionContext) {
 
 										//older Windows systems support here: check platform, change process command accordingly
 										let platform : NodeJS.Platform = os.platform();
-										vscode.window.showInformationMessage(`Your platform is ${platform}`);
-
 
 										const sbCLI = './node_modules/.bin/start-storybook'
 										const sbStartIndex = retrievedScriptArray.indexOf('start-storybook')
 										retrievedScriptArray[sbStartIndex] = sbCLI;
-										retrievedScriptArray.push('--ci')
-										
-						
+										retrievedScriptArray.push('--ci')				
 										
 										//now launch the child process on the port you've derived
 										let runSb;
 										if (platform === 'win32') {
-											// runSb = child_process.spawn('cmd.exe', {cwd: rootDir})
-											// runSb.stdin.write('npm run storybook')
-											runSb = child_process.spawn('npm.cmd', ['run', 'storybook'], {cwd: rootDir})
-											vscode.window.showInformationMessage(`your platform is: `, platform, `spun up child process`)
+											runSb = child_process.spawn('npm.cmd', ['run', 'storybook'], {cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
 										} else {
-											runSb =	child_process.spawn('node', retrievedScriptArray, {cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+											runSb =	child_process.spawn('node', retrievedScriptArray, {cwd: rootDir, detached: false, env: process.env });
 										}
 
 										statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
@@ -198,21 +187,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 										runSb.stdout.on('data', (data) => {
 											let str = data.toString().split(" ");
-											//vscode.window.showInformationMessage(`str: ${str}`);
-											outputConsole.append(`str: ${str}`)
 											counter += 1;
-											outputConsole.append(`counter: ${counter}`)
+											
 											if (counter >= 2) {
 												outputConsole.append(`IF COUNTER HIT, ${counter}`)
 												for (let i = 165; i < str.length; i += 1){
 													if(str[i].includes('localhost')) {
-														outputConsole.append('hello inside localhost line')
 														const path = str[i];
-														outputConsole.append(`path is ${path}`)
 														const regExp = (/[^0-9]/g);
 														PORT = (path.replace(regExp, ""));
-														outputConsole.append(`port is ${PORT}`)
-														vscode.window.showInformationMessage(`Storybook is now running on localhost:${PORT}`);
 														aesopEmitter.emit('sb_on')
 														break;
 													}
@@ -273,17 +256,14 @@ export function activate(context: vscode.ExtensionContext) {
 				</head>
 				<body>
 					<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
-					<p>Counter = 3</p>
 				</body>
 			</html>`
 		} // close createAesop helper function
-
 	}); //close disposable
 
 	context.subscriptions.push(disposable);
 }
 
-	
 
 export function deactivate() {
 

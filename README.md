@@ -22,4 +22,6 @@ The Aesop team aims to provide further customization options and improved UI int
 Please contact the developers at https://github.com/Async-Aesop/aesop with comments, questions, and any features you would like to see in a future version of Aesop.
 
 ### 1.0.0
-Aesop is pleased to make your acquaintance. Happy testing.
+Aesop is pleased to make your acquaintance. 
+
+If you are downloading the repository to play with Aesop's code, you may need to install dependencies for the sample React and Vue component files before use. Happy testing!
