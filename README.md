@@ -3,6 +3,10 @@ Meet Aesop: the lightweight Storybook preview extension.
  
 This humble helper displays your Storybook alongside a codebase for more responsive workflow. It integrates with existing Storybook addons and features, and it is optimized to use minimal system resources.
 
+## Screenshots
+![Aesop Awoken](https://user-images.githubusercontent.com/55175891/72540358-b3996300-384e-11ea-9477-e8823d1aedaa.gif)
+
+Here we activate the Aesop Awaken command to jump start the initialization process that checks whether your storybook is currently running. In this case, we have already deployed a storybook instance from the command line and so Aesop dynamically selects the location where the content is being served and displays it in a webview inside of your IDE.
 ## Features
 If you are working in a project folder on a Storybook-enabled application, Aesop will run a Storybook process at startup and display the same suite you're used to right inside Visual Studio Code as an attached child process. Or, if you're used to starting up your Storybook from the CLI with additional arguments, Aesop won't impede your workflow — it understands Node processes, and will happily retrieve your running Storybook.
 
