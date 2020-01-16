@@ -250,7 +250,6 @@ export function activate(context: vscode.ExtensionContext) {
 				</head>
 				<body>
 					<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
-					<p>Counter = 2</p>
 				</body>
 			</html>`
 		} // close createAesop helper function
