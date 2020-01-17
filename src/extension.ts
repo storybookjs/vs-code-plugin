@@ -13,6 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
 	let PORT : number;
 	let host : string = 'localhost';
 	const aesopEmitter = new events.EventEmitter();
+	let emittedAesop = false;
 
 	const platform = os.platform();
 	const commands = {
@@ -45,12 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
 	
 	//create disposable to register Aesop Awaken command to subscriptions
 	let disposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
-		const outputConsole = vscode.window.createOutputChannel('something')
-		outputConsole.appendLine('testing')
 		statusText.show();
-
-		//declare variable to toggle whether running Node processes have been checked
-		let checkedProcesses : Boolean = false;
 
 		//declare variable to toggle whether a running SB process was found
 		let foundSb : Boolean = false;
@@ -89,7 +85,6 @@ export function activate(context: vscode.ExtensionContext) {
 								//stretch feature: check for multiple instances of storybook and reconcile
 
 								if(process.arguments[0].includes('node_modules') && process.arguments[0].includes('storybook')){
-									outputConsole.append(`process.arguments: ${process.arguments[0]}`)
 
 									//if so, extract port number and use that value to populate the webview with that contents
 									const pFlagIndex = process.arguments.indexOf('-p');
@@ -101,8 +96,8 @@ export function activate(context: vscode.ExtensionContext) {
 									if (pFlagIndex !== -1){
 										PORT = parseInt(process.arguments[pFlagIndex+1]);
 										aesopEmitter.emit('sb_on')
+										return;
 									} else {
-										outputConsole.appendLine(`hit inside netstat stuff`)
 										//if no port flag defined, dynamically retrieve port with netstat
 										const netStatProcess = child_process.spawn(command.cmd, command.args);
 										const grepProcess = child_process.spawn('grep', [processPid]);
@@ -116,8 +111,21 @@ export function activate(context: vscode.ExtensionContext) {
 											console.log(parts)
 											PORT = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
 											aesopEmitter.emit('sb_on');
+											process.send('killNet');
+											process.send('killGrep');
+											return;
 										})
 										
+										process.on('killGrep', () => {
+											console.log(`Killed Grep`);
+											grepProcess.kill();
+										});
+
+										netStatProcess.on('killNet', () => {
+											console.log(`Killed Net`);
+											netStatProcess.kill();
+										});
+
 										netStatProcess.stdout.on('exit', (code) =>{
 											vscode.window.showInformationMessage(`Netstat ended with ${code}`);
 										})
@@ -125,8 +133,6 @@ export function activate(context: vscode.ExtensionContext) {
 										grepProcess.stdout.on('exit', (code) =>{
 											vscode.window.showInformationMessage(`Grep ended with ${code}`);
 										})
-										
-
 									}
 									//set foundSb to true to prevent our function from running another process
 									foundSb = true;
@@ -169,12 +175,16 @@ export function activate(context: vscode.ExtensionContext) {
 										retrievedScriptArray.push('--ci')				
 										
 										//now launch the child process on the port you've derived
-										let runSb;
-										if (platform === 'win32') {
-											runSb = child_process.spawn('npm.cmd', ['run', 'storybook'], {cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
-										} else {
-											runSb =	child_process.spawn('node', retrievedScriptArray, {cwd: rootDir, detached: false, env: process.env });
-										}
+										const childProcessArguments = (platform === 'win32') ? ['run', 'storybook'] : retrievedScriptArray;
+										const childProcessCommand = (platform === 'win32') ? 'npm.cmd' : 'node';
+									
+										const runSb = child_process.spawn(childProcessCommand, childProcessArguments, {cwd: rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+
+										// if (platform === 'win32') {
+										// 	let runSb = child_process.spawn('npm.cmd', ['run', 'storybook'], {cwd: rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+										// } else {
+										// 	let runSb =	child_process.spawn('node', retrievedScriptArray, {cwd: rootDir, detached: false, env: process.env });
+										// }
 
 										statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
 
@@ -186,18 +196,19 @@ export function activate(context: vscode.ExtensionContext) {
 										//grab the port from the last message to listen in on the process
 
 										runSb.stdout.on('data', (data) => {
+											if (emittedAesop === true) return;
 											let str = data.toString().split(" ");
 											counter += 1;
 											
 											if (counter >= 2) {
-												outputConsole.append(`IF COUNTER HIT, ${counter}`)
 												for (let i = 165; i < str.length; i += 1){
 													if(str[i].includes('localhost')) {
 														const path = str[i];
 														const regExp = (/[^0-9]/g);
 														PORT = (path.replace(regExp, ""));
-														aesopEmitter.emit('sb_on')
-														break;
+														emittedAesop = true;
+														aesopEmitter.emit('sb_on');
+														return;
 													}
 												}
 											}
@@ -209,7 +220,7 @@ export function activate(context: vscode.ExtensionContext) {
 										})
 
 										//make sure the child process is terminated on process exit
-										runSb.on('close', (code) => {
+										runSb.on('exit', (code) => {
 											console.log(`child process exited with code ${code}`);
 										})
 									}
@@ -266,5 +277,5 @@ export function activate(context: vscode.ExtensionContext) {
 
 
 export function deactivate() {
-
+	process.exit();
 }

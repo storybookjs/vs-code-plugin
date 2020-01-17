@@ -40,6 +40,8 @@ function activate(context) {
     statusText.tooltip = "Aesop status";
     //create disposable to register Aesop Awaken command to subscriptions
     let disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
+        const outputConsole = vscode.window.createOutputChannel('something');
+        outputConsole.appendLine('testing');
         statusText.show();
         //declare variable to toggle whether running Node processes have been checked
         let checkedProcesses = false;
@@ -55,7 +57,7 @@ function activate(context) {
                 throw new Error('Error finding a storybook project');
             }
             else {
-                statusText.text = "`Aesop found Storybook dependency";
+                statusText.text = "Aesop found a Storybook project.";
                 //check to see if a storybook node process is already running
                 ps.lookup({ command: 'node',
                     psargs: 'ux'
@@ -63,7 +65,7 @@ function activate(context) {
                     if (err) {
                         vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
                         statusText.dispose();
-                        throw new Error('no node process found');
+                        throw new Error('Failed looking for running Node processes.');
                     }
                     else {
                         //notify the user that Aesop is checking for a running Storybook instances
@@ -72,7 +74,8 @@ function activate(context) {
                         resultList.forEach((process) => {
                             //check if any running processes are Storybook processes
                             //stretch feature: check for multiple instances of storybook and reconcile
-                            if (process.arguments[0].includes('storybook')) {
+                            if (process.arguments[0].includes('node_modules') && process.arguments[0].includes('storybook')) {
+                                outputConsole.append(`process.arguments: ${process.arguments[0]}`);
                                 //if so, extract port number and use that value to populate the webview with that contents
                                 const pFlagIndex = process.arguments.indexOf('-p');
                                 //also grab the process id to use netstat in the else condition
@@ -83,6 +86,7 @@ function activate(context) {
                                     aesopEmitter.emit('sb_on');
                                 }
                                 else {
+                                    outputConsole.appendLine(`hit inside netstat stuff`);
                                     //if no port flag defined, dynamically retrieve port with netstat
                                     const netStatProcess = child_process.spawn(command.cmd, command.args);
                                     const grepProcess = child_process.spawn('grep', [processPid]);
@@ -91,7 +95,8 @@ function activate(context) {
                                     grepProcess.stdout.on('data', (data) => {
                                         const parts = data.split(/\s/).filter(String);
                                         //@TODO: refactor for platform specific or grab port dynamically
-                                        const partIndex = (platform === 'win32') ? 2 : 3;
+                                        const partIndex = (platform === 'win32') ? 1 : 3;
+                                        console.log(parts);
                                         PORT = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
                                         aesopEmitter.emit('sb_on');
                                     });
@@ -128,30 +133,33 @@ function activate(context) {
                                     //@TODO if script already includes --ci, no need to add it
                                     //older Windows systems support here: check platform, change process command accordingly
                                     let platform = os.platform();
-                                    vscode.window.showInformationMessage(`Your platform is ${platform}`);
                                     const sbCLI = './node_modules/.bin/start-storybook';
                                     const sbStartIndex = retrievedScriptArray.indexOf('start-storybook');
                                     retrievedScriptArray[sbStartIndex] = sbCLI;
                                     retrievedScriptArray.push('--ci');
                                     //now launch the child process on the port you've derived
-                                    const runSb = child_process.spawn('node', retrievedScriptArray, { cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+                                    let runSb;
+                                    if (platform === 'win32') {
+                                        runSb = child_process.spawn('npm.cmd', ['run', 'storybook'], { cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+                                    }
+                                    else {
+                                        runSb = child_process.spawn('node', retrievedScriptArray, { cwd: rootDir, detached: false, env: process.env });
+                                    }
                                     statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
                                     runSb.stdout.setEncoding('utf8');
                                     let counter = 0;
                                     //Storybook outputs three messages to the terminal as it spins up
                                     //grab the port from the last message to listen in on the process
                                     runSb.stdout.on('data', (data) => {
-                                        let str = data.toString();
-                                        let lines = str.split(" ");
-                                        //vscode.window.showInformationMessage(`lines: ${lines}`);
+                                        let str = data.toString().split(" ");
                                         counter += 1;
                                         if (counter >= 2) {
-                                            for (let i = 165; i < lines.length; i += 1) {
-                                                if (lines[i].includes('localhost')) {
-                                                    const path = lines[i];
+                                            outputConsole.append(`IF COUNTER HIT, ${counter}`);
+                                            for (let i = 165; i < str.length; i += 1) {
+                                                if (str[i].includes('localhost')) {
+                                                    const path = str[i];
                                                     const regExp = (/[^0-9]/g);
                                                     PORT = (path.replace(regExp, ""));
-                                                    vscode.window.showInformationMessage(`Storybook is now running on localhost:${PORT}`);
                                                     aesopEmitter.emit('sb_on');
                                                     break;
                                                 }
@@ -203,7 +211,6 @@ function activate(context) {
 				</head>
 				<body>
 					<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
-					<p>Counter = 2</p>
 				</body>
 			</html>`;
         } // close createAesop helper function

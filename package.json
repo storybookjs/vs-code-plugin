@@ -47,6 +47,7 @@
 			}
 		]
 	},
+	"icon": "resources\\Aesop128x128.png",
 	"scripts": {
 		"vscode:prepublish": "webpack --mode production",
 		"webpack": "webpack --mode development",
