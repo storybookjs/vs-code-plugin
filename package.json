@@ -1,7 +1,7 @@
 {
 	"name": "aesop",
 	"displayName": "Aesop",
-	"description": "An IDE-native suite for previewing Storybook files.",
+	"description": "An IDE-native suite for previewing Storybook.",
 	"version": "0.0.7",
 	"publisher": "async-aesop",
 	"repository": "https://github.com/Async-Aesop/aesop",
@@ -40,16 +40,6 @@
 					"type": "string",
 					"default": "localhost",
 					"description": "Host address"
-				},
-				"aesop.storyRegex": {
-					"type": "string",
-					"default": "**/*.story.*",
-					"description": "A regular expression that picks up Storybook files in your root project folder."
-				},
-				"aesop.storybookFilterRegex": {
-					"type": "string",
-					"default": ".",
-					"description": "A regular expression to filter Storybook stories appearing in explorer view."
 				}
 			}
 		},
@@ -59,26 +49,7 @@
 				"key": "ctrl+k a",
 				"mac": "cmd+k a"
 			}
-		],
-		"views": {
-			"explorer": [
-				{
-					"id": "storybook-view",
-					"name": "Storybook x Aesop",
-					"when": "aesop-awake"
-				}
-			]
-		},
-		"viewsContainers": {
-			"activitybar": [
-				{
-					"id": "storybook-aesop",
-					"title": "Storybook",
-					"icon": "resources/SB-logo.svg",
-					"when": "aesop-awake"
-				}
-			]
-		}
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "webpack --mode production",
@@ -106,11 +77,8 @@
 		"webpack-cli": "^3.3.10"
 	},
 	"dependencies": {
-		"@storybook/channel-websocket": "^5.2.8",
-		"express": "^4.17.1",
 		"npm": "^6.13.4",
 		"ps-node": "^0.1.6",
 		"vsce": "^1.71.0",
-		"ws": "^7.2.1"
 	}
 }
