@@ -2,7 +2,7 @@
 	"name": "aesop",
 	"displayName": "Aesop",
 	"description": "An IDE-native suite for previewing Storybook.",
-	"version": "0.0.7",
+	"version": "1.0.1",
 	"publisher": "async-aesop",
 	"repository": "https://github.com/Async-Aesop/aesop",
 	"engines": {
@@ -13,7 +13,7 @@
 	],
 	"activationEvents": [
 		"onCommand:extension.aesopAwaken",
-		"workspaceContains:**/node_modules/@storybook/core/package.json"
+		"workspaceContains:**/node_modules/@storybook/core/*.json"
 	],
 	"main": "./dist/extension",
 	"contributes": {
@@ -21,10 +21,6 @@
 			{
 				"command": "extension.aesopAwaken",
 				"title": "Aesop Awaken"
-			},
-			{
-				"command": "extension.aesopChronicle",
-				"title": "Aesop Chronicle"
 			}
 		],
 		"configuration": {
@@ -79,6 +75,6 @@
 	"dependencies": {
 		"npm": "^6.13.4",
 		"ps-node": "^0.1.6",
-		"vsce": "^1.71.0",
+		"vsce": "^1.71.0"
 	}
 }
