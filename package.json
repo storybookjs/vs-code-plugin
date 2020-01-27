@@ -2,7 +2,7 @@
 	"name": "aesop",
 	"displayName": "Aesop",
 	"description": "An IDE-native suite for previewing Storybook.",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"publisher": "async-aesop",
 	"repository": "https://github.com/oslabs-beta/aesop-for-storybook",
 	"icon": "resources/Aesop128x128.png",
