@@ -73,8 +73,16 @@
 		"webpack-cli": "^3.3.10"
 	},
 	"dependencies": {
+		"@storybook/addons": "^5.3.8",
+		"@storybook/channel-postmessage": "^5.3.8",
+		"@storybook/channel-websocket": "^5.3.8",
+		"@storybook/channels": "^5.3.8",
+		"@storybook/ui": "^5.3.8",
 		"npm": "^6.13.4",
 		"ps-node": "^0.1.6",
-		"vsce": "^1.71.0"
+		"react": "^16.12.0",
+		"react-helmet": "^5.2.1",
+		"vsce": "^1.71.0",
+		"ws": "^7.2.1"
 	}
 }

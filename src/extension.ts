@@ -7,6 +7,21 @@ import * as child_process from 'child_process';
 import * as events from 'events';
 import * as os from 'os';
 
+import { document, PREVIEW_URL } from 'global';
+// import renderStorybookUI from '@storybook/ui';
+// import createChannel from '@storybook/channel-websocket';
+import Channel from '@storybook/channels';
+import addons from '@storybook/addons';
+// import TreeViewUIProvider from './TreeviewUIProvider';
+import { TreeViewProvider } from './TreeViewProvider';
+import createChannel from '@storybook/channel-postmessage';
+
+// const rootElement = document.getElementById('root');
+// renderStorybookUI(rootElement, new TreeViewUIProvider);
+
+
+
+
 /* ALTERNATE APPROACH W/O PS-NODE LIBRARY
 
 	export async function isProcessRunning(processName: string): Promise<boolean> {
@@ -120,6 +135,8 @@ class aesopWebview implements vscode.Webview {
 
 export function activate(context: vscode.ExtensionContext) {
 
+	// console.log(renderStorybookUI(rootElement, new TreeViewProvider));
+
 	//define PORT and host variables to feed the webview content from SB server
 	let PORT : number;
 	let host : string = 'localhost';
@@ -175,7 +192,7 @@ export function activate(context: vscode.ExtensionContext) {
 				vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder, ${rootDir}`);
 				throw new Error('Error finding a storybook project')
 			}	else {
-				statusText.text = "`Aesop found Storybook dependency"
+				statusText.text = "Aesop found Storybook dependency"
 
 				//check to see if a storybook node process is already running
 					ps.lookup (
@@ -222,10 +239,13 @@ export function activate(context: vscode.ExtensionContext) {
 											const partIndex = (platform === 'win32') ? 2 : 3;
 											PORT = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
 											aesopEmitter.emit('sb_on');
+											netStatProcess.kill();
+											console.log(`Netstat killed: `, netStatProcess.killed);
 										})
 										
 										netStatProcess.stdout.on('exit', (code) =>{
 											vscode.window.showInformationMessage(`Netstat ended with ${code}`);
+											grepProcess.kill();
 										})
 										
 										grepProcess.stdout.on('exit', (code) =>{
@@ -239,6 +259,9 @@ export function activate(context: vscode.ExtensionContext) {
 									
 									//once port is known, fire event emitter to instantiate webview
 									statusText.text = `Retrieving running Storybook process...`;
+
+									//the Aesop event emitter will now create the webview function 
+									aesopEmitter.emit('sb_on');
 
 								}//---> close if process.arguments[0] contains storybook
 							}) //---> close resultList.forEach()
@@ -270,6 +293,20 @@ export function activate(context: vscode.ExtensionContext) {
 										let platform : NodeJS.Platform = os.platform();
 										vscode.window.showInformationMessage(`Your platform is ${platform}`);
 										
+										let processCommand : string;
+
+										switch (platform) {
+											case 'win32':
+											 processCommand = 'npm.cmd';
+											 vscode.window.showInformationMessage(`${processCommand}`);
+											break;
+											default:
+												processCommand = 'npm';
+										}
+
+										vscode.window.showWarningMessage(`${process.cwd()}`)
+										vscode.window.showInformationMessage(`${rootDir}`);
+
 										const sbCLI = './node_modules/.bin/start-storybook'
 										const sbStartIndex = retrievedScriptArray.indexOf('start-storybook')
 										retrievedScriptArray[sbStartIndex] = sbCLI;
@@ -325,10 +362,31 @@ export function activate(context: vscode.ExtensionContext) {
 		}) //close fs access
 
 		aesopEmitter.on('sb_on', () => {
+			const channel = createChannel({
+				url: 'ws://localhost:8509',
+				async: false,
+				onError: () => {
+					vscode.window.showErrorMessage(`Error establishing websocket connection to Storybook manager`);
+				}
+			})
+			channel.listeners('newMessage');
+			channel.addListener('message', onmessage);
+			channel.on('message', () => {
+				vscode.window.showInformationMessage(`Message received on websocket channel`);
+			});
+
+			const SBChannel = new Channel();
+			// SBChannel.eventNames = ['hello']
+			// SBChannel.addListener
+			
+			addons.setChannel(SBChannel);
+			console.log(`Storybook Channel: \n********************\n`, SBChannel);
 			createAesop(PORT, host);
 		});
 	
 		function createAesop(PORT, host){
+			addons.getChannel();
+			console.log(`GET CHANNEL: \n********************\n`, addons.getChannel());
 			statusText.hide();
 		
 			vscode.window.showInformationMessage(`Welcome to Aesop Storybook`);
