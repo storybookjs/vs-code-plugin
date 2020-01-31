@@ -362,18 +362,18 @@ export function activate(context: vscode.ExtensionContext) {
 		}) //close fs access
 
 		aesopEmitter.on('sb_on', () => {
-			const channel = createChannel({
-				url: 'ws://localhost:8509',
-				async: false,
-				onError: () => {
-					vscode.window.showErrorMessage(`Error establishing websocket connection to Storybook manager`);
-				}
-			})
-			channel.listeners('newMessage');
-			channel.addListener('message', onmessage);
-			channel.on('message', () => {
-				vscode.window.showInformationMessage(`Message received on websocket channel`);
-			});
+			// const channel = createChannel({
+			// 	url: 'ws://localhost:8509',
+			// 	async: false,
+			// 	onError: () => {
+			// 		vscode.window.showErrorMessage(`Error establishing websocket connection to Storybook manager`);
+			// 	}
+			// })
+			// channel.listeners('newMessage');
+			// channel.addListener('message', onmessage);
+			// channel.on('message', () => {
+			// 	vscode.window.showInformationMessage(`Message received on websocket channel`);
+			// });
 
 			const SBChannel = new Channel();
 			// SBChannel.eventNames = ['hello']
