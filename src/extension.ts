@@ -6,14 +6,25 @@ import * as ps from 'ps-node';
 import * as child_process from 'child_process';
 import * as events from 'events';
 import * as os from 'os';
+import { addons } from '@storybook/addons';
 
 export function activate(context: vscode.ExtensionContext) {
+	let currentPanel : vscode.WebviewPanel | undefined = undefined;
+
+	//ADDED: TESTING ability to interact with manager api through palette command
+	let testDisposable : vscode.Disposable = vscode.commands.registerCommand('extension.goToWelcome', () => {
+		addons.register('aesop', api => {
+			currentPanel.webview.postMessage(api.selectStory('welcome', 'toStorybook'));
+			vscode.window.showInformationMessage('Selecting story');
+		});
+	});
+	context.subscriptions.push(testDisposable);
+
 
 	//define PORT and host variables to feed the webview content from SB server
 	let PORT : number;
 	let host : string = 'localhost';
 	const aesopEmitter = new events.EventEmitter();
-	let emittedAesop = false;
 
 	const platform = os.platform();
 	const commands = {
@@ -172,13 +183,13 @@ export function activate(context: vscode.ExtensionContext) {
 										const sbCLI = './node_modules/.bin/start-storybook'
 										const sbStartIndex = retrievedScriptArray.indexOf('start-storybook')
 										retrievedScriptArray[sbStartIndex] = sbCLI;
-										retrievedScriptArray.push('--ci')				
+										retrievedScriptArray.push('--ci');
 										
 										//now launch the child process on the port you've derived
 										const childProcessArguments = (platform === 'win32') ? ['run', 'storybook'] : retrievedScriptArray;
 										const childProcessCommand = (platform === 'win32') ? 'npm.cmd' : 'node';
 									
-										const runSb = child_process.spawn(childProcessCommand, childProcessArguments, {cwd: rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+										const runSb = child_process.spawn(childProcessCommand, childProcessArguments, {cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
 
 										// if (platform === 'win32') {
 										// 	let runSb = child_process.spawn('npm.cmd', ['run', 'storybook'], {cwd: rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
@@ -187,16 +198,14 @@ export function activate(context: vscode.ExtensionContext) {
 										// }
 
 										statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
-
 										runSb.stdout.setEncoding('utf8');
-
 										let counter = 0;
 
 										//Storybook outputs three messages to the terminal as it spins up
 										//grab the port from the last message to listen in on the process
 
 										runSb.stdout.on('data', (data) => {
-											if (emittedAesop === true) return;
+											// if (emittedAesop === true) return;
 											let str = data.toString().split(" ");
 											counter += 1;
 											
@@ -206,9 +215,9 @@ export function activate(context: vscode.ExtensionContext) {
 														const path = str[i];
 														const regExp = (/[^0-9]/g);
 														PORT = (path.replace(regExp, ""));
-														emittedAesop = true;
+														// emittedAesop = true;
 														aesopEmitter.emit('sb_on');
-														return;
+														break;
 													}
 												}
 											}
@@ -238,37 +247,65 @@ export function activate(context: vscode.ExtensionContext) {
 		function createAesop(PORT, host){
 			statusText.hide();
 			vscode.window.showInformationMessage(`Welcome to Aesop Storybook`);
-			const panel = vscode.window.createWebviewPanel(
-				'aesop-sb',
-				'Aesop',
-				vscode.ViewColumn.Beside,
-				{
-					enableCommandUris: true,
-					enableScripts: true,
-					portMapping: [{
-						webviewPort: PORT,
-						extensionHostPort: PORT
-					}],
-					localResourceRoots: [vscode.Uri.file(context.extensionPath)],
-				}
+
+			//ADDED: if/else clause to check if Aesop has already been instantiated
+			if (currentPanel) {
+				currentPanel.reveal(vscode.ViewColumn.Beside);
+			} else {
+				currentPanel = vscode.window.createWebviewPanel(
+					'aesop-sb',
+					'Aesop',
+					vscode.ViewColumn.Beside,
+					{
+						enableCommandUris: true,
+						enableScripts: true,
+						portMapping: [{
+							webviewPort: PORT,
+							extensionHostPort: PORT
+						}],
+						localResourceRoots: [vscode.Uri.file(context.extensionPath)],
+					}
+				);
+
+				currentPanel.webview.html = `
+				<!DOCTYPE html>
+				<html lang="en">
+					<head>
+						<meta charset="UTF-8">
+						<meta name="viewport" content="width=device-width, initial-scale=1.0">
+						<title>Aesop</title>
+						<style>
+							html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
+							body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
+						</style>
+					</head>
+					<body>
+						<script>
+							const vscode = acquireVsCodeApi();
+							const currentState = vscode.getState();
+							console.log(currentState);
+
+							window.addEventListener('message', event => {
+								const message = event.data;
+								const para = document.createElement('p');
+								para.innerHTML = message.toString();
+								document.querySelector('#attackRoot').appendChild(para);
+							});
+
+						</script>
+						<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
+						<div id="attackRoot"></div>
+					</body>
+				</html>`
+			} // close if/else check for "currentPanel"
+
+			currentPanel.onDidDispose(
+				() => {
+					currentPanel = undefined;
+				},
+				undefined,
+				context.subscriptions
 			);
-	
-			panel.webview.html = `
-			<!DOCTYPE html>
-			<html lang="en">
-				<head>
-					<meta charset="UTF-8">
-					<meta name="viewport" content="width=device-width, initial-scale=1.0">
-					<title>Aesop</title>
-					<style>
-						html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
-						body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
-					</style>
-				</head>
-				<body>
-					<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
-				</body>
-			</html>`
 		} // close createAesop helper function
 	}); //close disposable
 

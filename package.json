@@ -22,6 +22,10 @@
 			{
 				"command": "extension.aesopAwaken",
 				"title": "Aesop Awaken"
+			},
+			{
+				"command": "extension.goToWelcome",
+				"title": "Go To Welcome"
 			}
 		],
 		"configuration": {
