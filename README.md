@@ -39,7 +39,7 @@ Because Aesop is lightweight, it is also minimal config. It contributes one hotk
 The Aesop team aims to provide further customization options and improved UI integration within Visual Studio Code as development continues.
 
 ## Release Notes
-Please contact the developers at https://github.com/storybookjs/aesop-for-storybook with comments, questions, and any features you would like to see in a future version of Aesop.
+Please contact the developers at https://github.com/storybookjs/vs-code-plugin with comments, questions, and any features you would like to see in a future version of Aesop.
 
 ## Known Issues
 On Windows, you MUST have Storybook already running for Aesop to work. We are currently tackling this issue and expect it to be resolved soon.
