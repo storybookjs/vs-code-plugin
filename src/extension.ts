@@ -6,21 +6,19 @@ import * as ps from 'ps-node';
 import * as child_process from 'child_process';
 import * as events from 'events';
 import * as os from 'os';
+import { TreeViewProvider } from './TreeViewProvider';
 
-import { document, PREVIEW_URL } from 'global';
+// import { document, PREVIEW_URL } from 'global';
 // import renderStorybookUI from '@storybook/ui';
 // import createChannel from '@storybook/channel-websocket';
-import Channel from '@storybook/channels';
-import addons from '@storybook/addons';
+// import Channel from '@storybook/channels';
+// import createChannel from '@storybook/channel-postmessage';
+// import addons from '@storybook/addons';
 // import TreeViewUIProvider from './TreeviewUIProvider';
-import { TreeViewProvider } from './TreeViewProvider';
-import createChannel from '@storybook/channel-postmessage';
+
 
 // const rootElement = document.getElementById('root');
 // renderStorybookUI(rootElement, new TreeViewUIProvider);
-
-
-
 
 /* ALTERNATE APPROACH W/O PS-NODE LIBRARY
 
@@ -131,8 +129,6 @@ class aesopWebview implements vscode.Webview {
 	</html>`;
 */
 
-
-
 export function activate(context: vscode.ExtensionContext) {
 
 	// console.log(renderStorybookUI(rootElement, new TreeViewProvider));
@@ -159,7 +155,7 @@ export function activate(context: vscode.ExtensionContext) {
 	};
 		
 	const command = commands[platform];
-//@TODO: if aesop already opened sb in webview - subsequent calls to aesop should not open a new webview
+	//@TODO: if Aesop already opened Storybook in the Webview - subsequent calls to aesop should not open a new webview
 
 	//set context "aesop-awake" to true; enabling views
 	vscode.commands.executeCommand("setContext", "aesop-awake", true);
@@ -192,7 +188,7 @@ export function activate(context: vscode.ExtensionContext) {
 				vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder, ${rootDir}`);
 				throw new Error('Error finding a storybook project')
 			}	else {
-				statusText.text = "Aesop found Storybook dependency"
+				statusText.text = "Aesop has found your Storybook dependency."
 
 				//check to see if a storybook node process is already running
 					ps.lookup (
@@ -202,7 +198,7 @@ export function activate(context: vscode.ExtensionContext) {
 						if (err){
 							vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
 							statusText.dispose();
-							throw new Error('no node process found');
+							throw new Error('No Node processes found.');
 							
 						} else {
 							//notify the user that Aesop is checking for a running Storybook instances
@@ -301,7 +297,7 @@ export function activate(context: vscode.ExtensionContext) {
 											 vscode.window.showInformationMessage(`${processCommand}`);
 											break;
 											default:
-												processCommand = 'npm';
+												processCommand = 'node';
 										}
 
 										vscode.window.showWarningMessage(`${process.cwd()}`)
@@ -310,14 +306,22 @@ export function activate(context: vscode.ExtensionContext) {
 										const sbCLI = './node_modules/.bin/start-storybook'
 										const sbStartIndex = retrievedScriptArray.indexOf('start-storybook')
 										retrievedScriptArray[sbStartIndex] = sbCLI;
-										retrievedScriptArray.push('--ci')
+										retrievedScriptArray.push('--ci');
 
+										//bring this section up to parity with master branch for the Windows switch case
+										//CLEANUp is probably the branch you want
+
+										let runSb;
 										//now launch the child process on the port you've derived
-										const runSb = child_process.spawn('node',retrievedScriptArray, {cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+										if (platform !== 'win32'){
+											runSb = child_process.spawn(processCommand, retrievedScriptArray, {cwd: rootDir, detached: false, env: process.env });
+											runSb.stdout.setEncoding('utf8');
+										} else {
+											runSb = child_process.spawn(processCommand, ['start', 'storybook'], {cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+											runSb.stdout.setEncoding('utf8');
+										}
 
-										statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
-
-										runSb.stdout.setEncoding('utf8');
+										statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;								
 
 										let counter = 0;
 
@@ -375,18 +379,18 @@ export function activate(context: vscode.ExtensionContext) {
 			// 	vscode.window.showInformationMessage(`Message received on websocket channel`);
 			// });
 
-			const SBChannel = new Channel();
+			// const SBChannel = new Channel();
 			// SBChannel.eventNames = ['hello']
 			// SBChannel.addListener
 			
-			addons.setChannel(SBChannel);
-			console.log(`Storybook Channel: \n********************\n`, SBChannel);
+			// addons.setChannel(SBChannel);
+			// console.log(`Storybook Channel: \n********************\n`, SBChannel);
 			createAesop(PORT, host);
 		});
 	
 		function createAesop(PORT, host){
-			addons.getChannel();
-			console.log(`GET CHANNEL: \n********************\n`, addons.getChannel());
+			// addons.getChannel();
+			// console.log(`GET CHANNEL: \n********************\n`, addons.getChannel());
 			statusText.hide();
 		
 			vscode.window.showInformationMessage(`Welcome to Aesop Storybook`);
@@ -418,15 +422,31 @@ export function activate(context: vscode.ExtensionContext) {
 					</style>
 				</head>
 				<body>
+					<script>
+						const vscode = acquireVsCodeApi();
+						const currentState = vscode.getState();
+						console.log(currentState);
+
+						window.addEventListener('message', event => {
+							const storiesArray = event.data;
+							vscode.postMessage(storiesArray);
+						});
+						
+					</script>
 					<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
-					<p>Counter = 2</p>
 				</body>
 			</html>`
+
+			panel.webview.onDidReceiveMessage((message) => {
+				vscode.window.showInformationMessage(message);
+			}, undefined, context.subscriptions);
 		} // close createAesop helper function
 
 	}); //close disposable
 
 	context.subscriptions.push(disposable);
+
+
 }
 
 	
