@@ -5,7 +5,6 @@
 	"version": "0.1.2",
 	"publisher": "async-aesop",
 	"repository": "https://github.com/storybookjs/vs-code-plugin",
-	"icon": "resources/Aesop128x128.png",
 	"engines": {
 		"vscode": "^1.41.0"
 	},
@@ -22,10 +21,6 @@
 			{
 				"command": "extension.aesopAwaken",
 				"title": "Aesop Awaken"
-			},
-			{
-				"command": "extension.goToWelcome",
-				"title": "Go To Welcome"
 			}
 		],
 		"configuration": {
