@@ -13,7 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
 	let PORT : number;
 	let host : string = 'localhost';
 	const aesopEmitter = new events.EventEmitter();
-	let emittedAesop = false;
+	// let emittedAesop = false;
 
 	const platform = os.platform();
 	const commands = {
@@ -85,7 +85,7 @@ export function activate(context: vscode.ExtensionContext) {
 								//stretch feature: check for multiple instances of storybook and reconcile
 
 								if(nodeProcess.arguments[0].includes('node_modules') && nodeProcess.arguments[0].includes('storybook')){
-
+                  vscode.window.showInformationMessage('Line 88');
 									//if so, extract port number and use that value to populate the webview with that contents
 									const pFlagIndex = nodeProcess.arguments.indexOf('-p');
 
@@ -95,9 +95,10 @@ export function activate(context: vscode.ExtensionContext) {
 									//if a port flag has been defined in the process args, retrieve the user's config
 									if (pFlagIndex !== -1){
 										PORT = parseInt(nodeProcess.arguments[pFlagIndex+1]);
-										aesopEmitter.emit('sb_on')
-										return;
+										aesopEmitter.emit('sb_on');
+                    // return;
 									} else {
+                    vscode.window.showInformationMessage('Line 101');
 										//if no port flag defined, dynamically retrieve port with netstat
 										const netStatProcess = child_process.spawn(command.cmd, command.args);
 										const grepProcess = child_process.spawn('grep', [processPid]);
@@ -110,8 +111,9 @@ export function activate(context: vscode.ExtensionContext) {
 											const partIndex = (platform === 'win32') ? 1 : 3;
 											console.log(parts)
 											PORT = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
-											aesopEmitter.emit('sb_on');
-											return;
+                      aesopEmitter.emit('sb_on');
+                      vscode.window.showInformationMessage('Line 115');
+											// return;
 										})
 										
 										process.on('message', (message) => {
@@ -151,7 +153,7 @@ export function activate(context: vscode.ExtensionContext) {
 						
 							//if no processes matched 'storybook', we will have to spin up the storybook server
 							if (foundSb === false){
-								
+								vscode.window.showInformationMessage('Line 156');
 								//starts by checking for/extracting any port flags from the SB script in the package.json
 								fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
 									if (err){
@@ -193,19 +195,21 @@ export function activate(context: vscode.ExtensionContext) {
 										//grab the port from the last message to listen in on the process
 
 										runSb.stdout.on('data', (data) => {
-											if (emittedAesop === true) return;
+											// if (emittedAesop === true) return;
 											let str = data.toString().split(" ");
 											counter += 1;
-											
+                      vscode.window.showInformationMessage(`Line 201 - runSb counter = ${counter}`);
 											if (counter >= 2) {
+                        vscode.window.showInformationMessage('Line 203 - inside counter');
 												for (let i = 165; i < str.length; i += 1){
 													if(str[i].includes('localhost')) {
 														const path = str[i];
 														const regExp = (/[^0-9]/g);
 														PORT = (path.replace(regExp, ""));
-														emittedAesop = true;
-														aesopEmitter.emit('sb_on');
-														return;
+														// emittedAesop = true;
+                            aesopEmitter.emit('sb_on');
+                            vscode.window.showInformationMessage('Line 210');
+														// return;
 													}
 												}
 											}
@@ -229,7 +233,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}) //close fs access
 
 		aesopEmitter.on('sb_on', () => {
-			createAesop(PORT, host);
+			return createAesop(PORT, host);
 		});
 	
 		function createAesop(PORT, host){
@@ -251,7 +255,7 @@ export function activate(context: vscode.ExtensionContext) {
 			);
 			
 			panel.webview.onDidReceiveMessage((message) => {
-				fs.appendFileSync(path.resolve(rootDir, 'YOLO.txt'), (message.type, 'and here is the event itself\n', message.data));
+				fs.appendFileSync(path.resolve(rootDir, './YOLO.txt'), (message.type, 'and here is the event itself\n', message.data, message));
 			});
 
 			panel.onDidDispose(

@@ -1097,6 +1097,7 @@ function activate(context) {
                             //check if any running processes are Storybook processes
                             //stretch feature: check for multiple instances of storybook and reconcile
                             if (nodeProcess.arguments[0].includes('node_modules') && nodeProcess.arguments[0].includes('storybook')) {
+                                vscode.window.showInformationMessage('Line 88');
                                 //if so, extract port number and use that value to populate the webview with that contents
                                 const pFlagIndex = nodeProcess.arguments.indexOf('-p');
                                 //also grab the process id to use netstat in the else condition
@@ -1105,9 +1106,10 @@ function activate(context) {
                                 if (pFlagIndex !== -1) {
                                     PORT = parseInt(nodeProcess.arguments[pFlagIndex + 1]);
                                     aesopEmitter.emit('sb_on');
-                                    return;
+                                    // return;
                                 }
                                 else {
+                                    vscode.window.showInformationMessage('Line 101');
                                     //if no port flag defined, dynamically retrieve port with netstat
                                     const netStatProcess = child_process.spawn(command.cmd, command.args);
                                     const grepProcess = child_process.spawn('grep', [processPid]);
@@ -1120,7 +1122,8 @@ function activate(context) {
                                         console.log(parts);
                                         PORT = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
                                         aesopEmitter.emit('sb_on');
-                                        return;
+                                        vscode.window.showInformationMessage('Line 115');
+                                        // return;
                                     });
                                     process.on('message', (message) => {
                                         switch (message.type) {
@@ -1152,6 +1155,7 @@ function activate(context) {
                         //having checked running Node processes, set that variable to true
                         //if no processes matched 'storybook', we will have to spin up the storybook server
                         if (foundSb === false) {
+                            vscode.window.showInformationMessage('Line 156');
                             //starts by checking for/extracting any port flags from the SB script in the package.json
                             fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
                                 if (err) {
@@ -1187,7 +1191,9 @@ function activate(context) {
                                             return;
                                         let str = data.toString().split(" ");
                                         counter += 1;
+                                        vscode.window.showInformationMessage(`Line 201 - runSb counter = ${counter}`);
                                         if (counter >= 2) {
+                                            vscode.window.showInformationMessage('Line 203 - inside counter');
                                             for (let i = 165; i < str.length; i += 1) {
                                                 if (str[i].includes('localhost')) {
                                                     const path = str[i];
@@ -1195,7 +1201,8 @@ function activate(context) {
                                                     PORT = (path.replace(regExp, ""));
                                                     emittedAesop = true;
                                                     aesopEmitter.emit('sb_on');
-                                                    return;
+                                                    vscode.window.showInformationMessage('Line 210');
+                                                    // return;
                                                 }
                                             }
                                         }
@@ -1217,7 +1224,7 @@ function activate(context) {
             } //close else statement in fs.access
         }); //close fs access
         aesopEmitter.on('sb_on', () => {
-            createAesop(PORT, host);
+            return createAesop(PORT, host);
         });
         function createAesop(PORT, host) {
             statusText.hide();
@@ -1232,7 +1239,7 @@ function activate(context) {
                 localResourceRoots: [vscode.Uri.file(context.extensionPath)],
             });
             panel.webview.onDidReceiveMessage((message) => {
-                fs.appendFileSync(path.resolve(rootDir, 'YOLO.txt'), (message.type, 'and here is the event itself\n', message.data));
+                fs.appendFileSync(path.resolve(rootDir, './YOLO.txt'), (message.type, 'and here is the event itself\n', message.data, message));
             });
             panel.onDidDispose((e) => {
                 panel = undefined;
