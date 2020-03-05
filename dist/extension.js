@@ -1038,7 +1038,7 @@ function activate(context) {
     let PORT;
     let host = 'localhost';
     const aesopEmitter = new events.EventEmitter();
-    let emittedAesop = false;
+    // let emittedAesop = false;
     const platform = os.platform();
     const commands = {
         linux: {
@@ -1056,6 +1056,8 @@ function activate(context) {
     };
     const command = commands[platform];
     //@TODO: if aesop already opened sb in webview - subsequent calls to aesop should not open a new webview
+    //define a path to the user's root working directory
+    const rootDir = url_1.fileURLToPath(vscode.workspace.workspaceFolders[0].uri.toString(true));
     //set context "aesop-awake" to true; enabling views
     vscode.commands.executeCommand("setContext", "aesop-awake", true);
     //create the status bar to let the user know what Aesop is doing
@@ -1064,13 +1066,111 @@ function activate(context) {
     statusText.color = "#FFFFFF";
     statusText.command = undefined;
     statusText.tooltip = "Aesop status";
+    //retainContextWhenHidden has a high memory overhead;
+    //can JSON serial objects be used to reinstantiate state?
+    //yes, w/getState(), setState() methods, but for our needs?
+    function createAesop(PORT, host) {
+        statusText.hide();
+        vscode.window.showInformationMessage(`Welcome to Aesop Storybook`);
+        let panel = vscode.window.createWebviewPanel('aesop-sb', 'Aesop', vscode.ViewColumn.Beside, {
+            enableCommandUris: true,
+            enableScripts: true,
+            portMapping: [{
+                    webviewPort: PORT,
+                    extensionHostPort: PORT
+                }],
+            localResourceRoots: [vscode.Uri.file(context.extensionPath)],
+            retainContextWhenHidden: true
+        });
+        panel.webview.onDidReceiveMessage((message) => {
+            console.log('Message received in webviewPanel KEITHY BOY', JSON.parse(message));
+            fs.appendFileSync(path.resolve(rootDir, './YOLO.txt'), (message));
+        });
+        panel.onDidDispose((e) => {
+            panel = undefined;
+        }, undefined, context.subscriptions);
+        panel.webview.html = `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${panel.webview.cspSource} https:; script-src ${panel.webview.cspSource} http: https: 'unsafe-inline'; style-src ${panel.webview.cspSource} http: 'unsafe-inline'; frame-src http: https: 'unsafe-inline';"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Aesop</title>
+        <style>
+          html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
+          body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
+        </style>
+      </head>
+      <body>
+        <iframe id="sb_iFrame" src="http://${host}:${PORT}" width="100%" height="700" sandbox="allow-scripts"></iframe>
+
+        <script>
+          function populateTree(){
+            console.log('Here is where we populate the Treeview');
+            //on page or iframe load, add event listener to iframe that takes messages and passes them up to the parent HERE
+          }
+
+          function listenToStorybook(event){
+            console.log("message received in external script: ", event);
+            vscode.postMessage(JSON.stringify({
+              type: 'manager_event',
+              data: event.data
+            }));
+          }
+
+          if (window.addEventListener){
+            console.log('Now adding onload to document');
+            window.addEventListener('load', populateTree, false);
+            window.addEventListener('message', listenToStorybook, false);
+          }
+
+          const vscode = acquireVsCodeApi();
+
+          vscode.postMessage(JSON.stringify({
+            'keith': 'Testing script in body.'
+          }));
+        
+          const testMsg = JSON.stringify({'keith':'yolo', 'ola':'hola'});
+
+          const sb_iFrame = document.getElementById('sb_iFrame').contentWindow;
+          const sb_Document = document.getElementById('sb_iFrame').contentDocument;
+
+          sb_iFrame.postMessage(testMsg, "*");
+
+          const addScript = document.createElement("script");
+
+          const textNode = document.createTextNode("const vscode = acquireVsCodeApi();
+            vscode.postMessage(JSON.stringify({'keith':'msg sent from iframe'}));
+            parent.addEventListener('message', (e) => {
+              vscode.postMessage(JSON.stringify({
+                keith: 'parent event listener firing.';
+              }));
+            });
+            parent.postMessage(JSON.stringify({'keith':'Sending message from inside iframe to parent'}), '*')
+            window.parent.postMessage(JSON.stringify({'keith':'Sending message from inside iframe to window.parent'}), '*');
+          ");
+
+          addScript.appendChild(textNode);
+          sb_Document.appendChild(addScript);
+
+          sb_iFrame.addEventListener('message', (e) => {
+            vscode.postMessage(JSON.stringify({
+              keith: 'parent event listener firing'
+            }));
+          });
+
+      </script>
+
+      </body>
+    </html>`;
+    }
+    ; //close createAesopHelper
     //create disposable to register Aesop Awaken command to subscriptions
     let disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
         statusText.show();
         //declare variable to toggle whether a running SB process was found
         let foundSb = false;
-        //define a path to the user's root working directory
-        const rootDir = url_1.fileURLToPath(vscode.workspace.workspaceFolders[0].uri.toString(true));
         //first test whether Storybook has been depended into your application
         fs.access(path.join(rootDir, '/node_modules/@storybook'), (err) => {
             //if the filepath isn't found, show the user what Aesop is reading as the root path
@@ -1119,7 +1219,7 @@ function activate(context) {
                                         const parts = data.split(/\s/).filter(String);
                                         //@TODO: refactor for platform specific or grab port dynamically
                                         const partIndex = (platform === 'win32') ? 1 : 3;
-                                        console.log(parts);
+                                        // console.log(parts)
                                         PORT = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
                                         aesopEmitter.emit('sb_on');
                                         vscode.window.showInformationMessage('Line 115');
@@ -1187,8 +1287,7 @@ function activate(context) {
                                     //Storybook outputs three messages to the terminal as it spins up
                                     //grab the port from the last message to listen in on the process
                                     runSb.stdout.on('data', (data) => {
-                                        if (emittedAesop === true)
-                                            return;
+                                        // if (emittedAesop === true) return;
                                         let str = data.toString().split(" ");
                                         counter += 1;
                                         vscode.window.showInformationMessage(`Line 201 - runSb counter = ${counter}`);
@@ -1199,7 +1298,7 @@ function activate(context) {
                                                     const path = str[i];
                                                     const regExp = (/[^0-9]/g);
                                                     PORT = (path.replace(regExp, ""));
-                                                    emittedAesop = true;
+                                                    // emittedAesop = true;
                                                     aesopEmitter.emit('sb_on');
                                                     vscode.window.showInformationMessage('Line 210');
                                                     // return;
@@ -1223,73 +1322,11 @@ function activate(context) {
                 }); //close ps LOOKUP //close depend found, not checked processes
             } //close else statement in fs.access
         }); //close fs access
-        aesopEmitter.on('sb_on', () => {
-            return createAesop(PORT, host);
-        });
-        function createAesop(PORT, host) {
-            statusText.hide();
-            vscode.window.showInformationMessage(`Welcome to Aesop Storybook`);
-            let panel = vscode.window.createWebviewPanel('aesop-sb', 'Aesop', vscode.ViewColumn.Beside, {
-                enableCommandUris: true,
-                enableScripts: true,
-                portMapping: [{
-                        webviewPort: PORT,
-                        extensionHostPort: PORT
-                    }],
-                localResourceRoots: [vscode.Uri.file(context.extensionPath)],
-            });
-            panel.webview.onDidReceiveMessage((message) => {
-                fs.appendFileSync(path.resolve(rootDir, './YOLO.txt'), (message.type, 'and here is the event itself\n', message.data, message));
-            });
-            panel.onDidDispose((e) => {
-                panel = undefined;
-            }, undefined, context.subscriptions);
-            panel.webview.html = `
-			<!DOCTYPE html>
-			<html lang="en">
-				<head>
-					<meta charset="UTF-8">
-					<meta name="viewport" content="width=device-width, initial-scale=1.0">
-					<title>Aesop</title>
-					<style>
-						html { width: 100%; height: 100%; min-width: 20%; min-height: 20%;}
-						body { display: flex; flex-flow: column nowrap; padding: 0; margin: 0; width: 100%' justify-content: center}
-					</style>
-				</head>
-				<body>
-				<script>
-						const vscode = acquireVsCodeApi();
-						const currentState = vscode.getState() || { value: 0 };
-
-						window.addEventListener('message', event => {
-							console.log("message received in external script: ", event);
-							vscode.postMessage({
-								type: 'manager_event',
-								data: event
-							});
-						});
-					</script>
-
-					<iframe src="http://${host}:${PORT}" width="100%" height="700">
-					<script>
-						const vscode = acquireVsCodeApi();
-						const currentState = vscode.getState() || { value: 0 };
-
-						window.addEventListener('message', event => {
-							console.log("message received in IFRAME script: ", event);
-							vscode.postMessage({
-								type: 'manager_event',
-								data: event
-							});
-						});
-					</script>
-					
-					</iframe>
-				</body>
-			</html>`;
-        } // close createAesop helper function
     }); //close disposable
     context.subscriptions.push(disposable);
+    aesopEmitter.on('sb_on', () => {
+        createAesop(PORT, host);
+    });
 }
 exports.activate = activate;
 function deactivate() {
