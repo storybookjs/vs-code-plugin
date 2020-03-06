@@ -96,7 +96,9 @@ export function activate(context: vscode.ExtensionContext) {
         </style>
       </head>
       <body>
-        <iframe id="sb_iFrame" src="http://${host}:${PORT}" width="100%" height="700" sandbox="allow-scripts"><script>console.log('Hello from iframe nested script.');</script></iframe>
+        <iframe id="sb_iFrame" src="http://${host}:${PORT}" width="100%" height="700" sandbox="allow-scripts">
+        <script>console.log('Hello from iframe nested script.');</script>
+        </iframe>
 
         <script>
           function handleLoad(){
@@ -157,6 +159,10 @@ export function activate(context: vscode.ExtensionContext) {
       </body>
     </html>`
   }; //close createAesopHelper
+
+  aesopEmitter.on('sb_on', () => {
+    createAesop(PORT, host);
+  });
 
 	//create disposable to register Aesop Awaken command to subscriptions
 	let disposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
@@ -346,10 +352,6 @@ export function activate(context: vscode.ExtensionContext) {
 	}); //close disposable
 
   context.subscriptions.push(disposable);
-  
-  aesopEmitter.on('sb_on', () => {
-    createAesop(PORT, host);
-  });
 }
 
 export function deactivate() {
