@@ -3,3 +3,6 @@
 
 #ignore dist folder
 /dist
+
+#ignore react node modules
+/samples/React_Sample/node_modules
