@@ -36,6 +36,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   //define a path to the user's root working directory
   const rootDir = fileURLToPath(vscode.workspace.workspaceFolders[0].uri.toString(true));
+  const debugLog = path.resolve(rootDir, './vscode.message-log.txt');
 
 	// set context "aesop-awake" to true; enabling views
 	vscode.commands.executeCommand("setContext", "aesop-awake", true);
@@ -72,7 +73,7 @@ export function activate(context: vscode.ExtensionContext) {
     
     panel.webview.onDidReceiveMessage((e) => {
       console.log('Webview received:', e);
-      fs.appendFileSync(path.resolve(rootDir, './vscode.message-log.txt'), `Webview panel recieved this from  ${e.source}/${e.origin}: \n\n ${e} \n\nEnd log\n\n`);
+      fs.appendFileSync(debugLog, `Webview panel recieved this from ${e.source}/${e.origin}: \n\n ${e} \n\n*** End log. *** \n\n`);
     });
 
     panel.onDidDispose(
@@ -99,24 +100,16 @@ export function activate(context: vscode.ExtensionContext) {
       <body>
         <iframe id="sb_iFrame" src="http://localhost:${PORT}" width="100%" height="100%" sandbox="allow-scripts allow-same-origin allow-top-navigation">
           <script>
+            const vscode = acquireVsCodeApi();
             console.log('Hello from iframe nested script.');
-          </script>
-          <script type="module">
-          
-            const test = acquireVsCodeApi();
-
-            test.postMessage(JSON.stringify({
-              'LOG': 'Testing script in SB iFrame.'
-            }));
-
-            function handleLoad(){
-              console.log('Handle load fired in the embedded inline script in Aesop');
+            if (window) {
+              if (window.contentWindow) {
+                window.contentWindow.on('message', (e) => {
+                  vscode.postMessage(e);
+                })
+              }
             }
-  
-            function listenToStorybook(e){
-              test.postMessage(e);
-            }
-  
+
             if (window.addEventListener) {
               console.log("Window - inner script: ");
               console.log(window);
@@ -131,104 +124,59 @@ export function activate(context: vscode.ExtensionContext) {
             if (parent) {
               parent.postMessage(JSON.stringify({ iframe: 'sb_iFrame talking to body'}));
             }
-
           </script>
         </iframe>
-
-        <script id="outerScript">
-          const vscode = acquireVsCodeApi();
-
-          function handleLoad(){
-            console.log('Handle Load fired in Outer Script');
-          }
-
-          function listenToStorybook(e){
-            vscode.postMessage(e);
-          }
-
-          if (window.addEventListener) {
-            console.log("Window - outer script: ");
-            console.log(window);
-
-            console.log("Window TOP - outer script: ");
-            console.log(window.top);
-
-            console.log(window == window.top);
-
-            console.log("Window PARENT- outer script: ");
-            console.log(window.parent);
-
-            window.addEventListener('load', handleLoad, false);
-            window.addEventListener('message', listenToStorybook, false);
-          }
-
-          vscode.postMessage(JSON.stringify({
-            'LOG': 'Testing script in body.',
-            'window': window.toString(),
-            'window.top': window.top.toString(),
-            'window.parent': window.parent.toString()
-          }));
-        
-          const testMsg = JSON.stringify({'LOG':'ciao', 'ola':'hola'});
-          const sb_iFrame = document.getElementById('sb_iFrame').contentWindow;
-          sb_iFrame.addEventListener('message', listenToStorybook);
-          console.log(sb_iFrame);
-          // const sb_incept = sb_iFrame.contentWindow.document;
-          sb_iFrame.postMessage(testMsg, "*");
-          // sb_incept.postMessage(testMsg, "*");
-
-          console.log('SB iFrame:', sb_iFrame);
-          // console.log('SB incept' , sb_incept);
-
-          // sb_iFrame.addEventListener('message', (e) => {
-          //   vscode.postMessage(JSON.stringify({
-          //     LOG: 'Event listener firing on SB iframe (contentWindow)'
-          //   }));
-          // });
-
-          // sb_incept.addEventListener('message', (e) => {
-          //   vscode.postMessage(JSON.stringify({
-          //     LOG: 'Event listener firing on SB iframe (contentWindow)'
-          //   }));
-          // });
-
-          // const sb_Document = document.getElementById('sb_iFrame').contentDocument;
-          // const addScript = document.createElement("script");
-          // const textNode = document.createTextNode("const vscode = acquireVsCodeApi();
-          //   vscode.postMessage(JSON.stringify({'LOG':'msg sent from iframe'}));
-          //   parent.addEventListener('message', (e) => {
-          //     vscode.postMessage(JSON.stringify({
-          //       LOG: 'parent event listener firing.';
-          //     }));
-          //   });
-          //   parent.postMessage(JSON.stringify({'LOG':'Sending message from inside iframe to parent'}), '*')
-          //   window.parent.postMessage(JSON.stringify({'LOG':'Sending message from inside iframe to window.parent'}), '*');
-          // ");
-          // addScript.appendChild(textNode);
-          // sb_iFrame.appendChild(addScript);
-          // sb_Document.appendChild(addScript);
-        </script>
       </body>
     </html>`
   }; //close createAesopHelper
 
   aesopEmitter.on('sb_on', (...args) => {
     const storybookPort = args[0];
-    // Aesop debug logging
-    fs.appendFileSync(path.resolve(rootDir, './vscode.message-log.txt'), `\n.\n Aesop emitter args' ${args} with port ${storybookPort} \n\n*** End log. ***\n\n`);
-
+    fs.appendFileSync(debugLog, `\n.\n Aesop emitter received arguments: \n ${args} \n Aesop emitter port ${storybookPort} \n\n*** End log. ***\n\n`);
     createAesop(storybookPort);
   });
 
+  // this helper function dynamically retrieves the Storybook server's port with netstat
+  const retrievePort = (processPid) => {
+
+    let dynamicPort : number;
+    const netStatProcess = spawn(command.cmd, command.args);
+    const grepProcess = spawn('grep', [processPid]);
+
+    netStatProcess.stdout.pipe(grepProcess.stdin);
+    grepProcess.stdout.setEncoding('utf8');
+    
+    grepProcess.stdout.on('data', (data) => {
+      const parts = data.split(/\s/).filter(String);
+      const partIndex = (platform === 'win32') ? 1 : 3;
+      dynamicPort = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
+      fs.appendFileSync(debugLog, `\n*** GREP RECEIVED THE FOLLOWING DATA: ***\n${data}\n Parsed data chunks:\n ${parts}\n Derived port is ${dynamicPort}\n\n`);
+      netStatProcess.kill();
+    })
+
+    // cascade child process kills to ensure no extant processes
+    netStatProcess.stdout.on('close', (code = 1) => {
+      console.log(`Netstat killed: ${code}`);
+      grepProcess.kill();
+    })
+    
+    grepProcess.stdout.on('close', (code = 1) => {
+      console.log(`Grep killed: ${code}`);
+      fs.appendFileSync(debugLog, `NetStat killed? ${netStatProcess.killed}\n Grep emitting ${dynamicPort} to AesopEmitter`);
+      aesopEmitter.emit('sb_on', dynamicPort);
+    })
+  };
+
 	//create disposable to register Aesop Awaken command to subscriptions
 	let disposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
-	
+  
+    // display status text in bottom panel as Aesop initializes
 		statusText.show();
 
-		//declare variable to toggle whether a running SB process was found
+		// declare variable to toggle whether running Storybook process was found
 		let foundSb : Boolean = false;
 
-		//first test whether Storybook has been depended into your application
+		// first test whether Storybook has been depended into your application
 		fs.access(path.join(rootDir, '/node_modules/@storybook'), (err) => {
 
 			//if the filepath isn't found, show the user what Aesop is reading as the root path
@@ -238,11 +186,12 @@ export function activate(context: vscode.ExtensionContext) {
 			}	else {
 				statusText.text = "Aesop found a Storybook project."
 
-				//check to see if a storybook node process is already running
+				// check to see if a Storybook process is already running
 				ps.lookup ({
 					command: 'node',
 					psargs: 'ux'
 				}, (err : Error, resultList : any) => {
+          // 'any' type not ideal, but ps utility doesn't play nice with strict NodeJsProcess types
 					if (err){
 						vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
 						statusText.dispose();
@@ -251,86 +200,35 @@ export function activate(context: vscode.ExtensionContext) {
 						//notify the user that Aesop is checking for a running Storybook instances
 						statusText.text = `Reviewing Node processes...`;
 
+            fs.appendFileSync(debugLog, `\nRunning Node processes detailed here:\n`)
+
             // if the process lookup was able to find running processes, iterate through to review them
             // this should be typed as a NodeJS.process, but pslookup returns a standard object; use 'any'
 						resultList.forEach((nodeProcess : any) => {
-    
-              // Aesop debug logging
-              fs.appendFileSync(path.resolve(rootDir, './vscode.message-log.txt'), `\n.\n Node process id' ${nodeProcess.pid} has the following arguments: \n ${nodeProcess.arguments} \n\n*** End log. ***\n\n`);
+  
+              fs.appendFileSync(debugLog, `PID ${nodeProcess.pid} arguments:\n${nodeProcess.arguments}\n`);
 
 							// check if any running processes are Storybook processes
 							// @TODO: (stretch feature) check for multiple instances of storybook and reconcile
-
-              if (nodeProcess.arguments[0].includes('node_modules') && nodeProcess.arguments.includes('storybook') && !nodeProcess.arguments[0].includes('.js')) {
-                // set foundSb to true to prevent running another process below
-                foundSb = true;
-
-                // grab the PID to use in the netstat process
-							  const processPid = parseInt(nodeProcess['pid']).toString();
-
+              if (nodeProcess.arguments[0].includes('node_modules') && nodeProcess.arguments[0].includes('storybook')) {
                 statusText.text = `Retrieving running Storybook process...`;
+
+                // set toggle to true to prevent running another process below
+                foundSb = true;
                 
-                /*
-                ARTIFACT:
-								// if so, extract port number and use that value to populate the webview with that contents
-                const pFlagIndex = nodeProcess.arguments.indexOf('-p');
+                // grab the PID to use in the netstat process
+                const processPid = parseInt(nodeProcess['pid']).toString();
 
-								//if a port flag has been defined in the process args, retrieve the user's config
-									if (pFlagIndex !== -1){
-										PORT = parseInt(nodeProcess.arguments[pFlagIndex+1]);
-										aesopEmitter.emit('sb_on', PORT);
-                    // return;
-									} else {
-                */
-
-                // this function dynamically retrieves the Storybook server's port with netstat
-                const retrievePort = () => {
-
-                  let dynamicPort : number = null;
-                  const netStatProcess = spawn(command.cmd, command.args);
-                  const grepProcess = spawn('grep', [processPid]);
-  
-                  netStatProcess.stdout.pipe(grepProcess.stdin);
-                  grepProcess.stdout.setEncoding('utf8');
-                  
-                  grepProcess.stdout.on('data', (data) => {
-                    const parts = data.split(/\s/).filter(String);
-                    fs.appendFileSync(path.resolve(rootDir, './vscode.message-log.txt'), `Parts is ${parts}. \n\n ***End log***\n.\n.`);
-                    const partIndex = (platform === 'win32') ? 1 : 3;
-                    dynamicPort = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
-                    fs.appendFileSync(path.resolve(rootDir, './vscode.message-log.txt'), `At line 299, Port is ${dynamicPort} \n.\n.***End log***\n.\n.`);
-                    netStatProcess.kill();
-                  })
-
-                  // cascade child process kills to ensure no extant processes
-                  netStatProcess.stdout.on('close', (code = 1) => {
-                    console.log(`Netstat killed: ${code}`);
-                    grepProcess.kill();
-                  })
-                  
-                  grepProcess.stdout.on('close', (code = 1) => {
-                    console.log(`Grep killed: ${code}`);
-                  })
-
-                  return dynamicPort;
-                };
-
-                // use an IIFE to invoke the asynchronous helper to find port and pass to emitter
-                async function findServer() {
-                  console.log('Server activation imminent.');
-                  const newPort = await retrievePort();
-                  return aesopEmitter.emit('sb_on', newPort);
-                }
-
-                findServer();
-
+                fs.appendFileSync(debugLog, `\n*** FOUND RUNNING STORYBOOK INSTANCE ***\nARGUMENTS: ${nodeProcess.arguments}\nPARSED PID: ${processPid}\n *** LOG CONTINUES *** \n`);
+                retrievePort(processPid);
 						  } //---> close if process.arguments[0] contains storybook			
 					  }) //---> close resultList.forEach()
 
 
             // if no processes matched 'Storybook', spin up the Storybook server
             if (foundSb === false) {
-              //starts by checking for/extracting any port flags from the SB script in the package.json
+              fs.appendFileSync(debugLog, `\nDid not find a running Storybook server. Starting one.\n`);
+
               fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
                 if (err){
                   vscode.window.showErrorMessage(`Aesop is attempting to read ${rootDir}. Is there a package.json file here?`);
@@ -338,7 +236,7 @@ export function activate(context: vscode.ExtensionContext) {
                 }	else {
                   statusText.text = `Checking package.json...`;
 
-                  //enter the package.JSON file and retrieve its contents as an object
+                  // enter the package.JSON file and retrieve its contents as an object
                   let packageJSON = JSON.parse(data.toString());
 
                   // retrieve the storybook script with any additional flags (e.g. ports, etc.)
@@ -346,17 +244,16 @@ export function activate(context: vscode.ExtensionContext) {
                     
                   // split the arguments into an arguments array for use in the child process
                   let retrievedScriptArray = storybookScript.split(' ');
-                    
-                  //@TODO if script already includes --ci, no need to add it
 
                   // check platform, change process command accordingly (older Windows systems support)
+                  // @TODO if script already includes --ci, no need to add it
                   let platform = os.platform();
                   const sbCLI = './node_modules/.bin/start-storybook';
                   const sbStartIndex = retrievedScriptArray.indexOf('start-storybook');
                   retrievedScriptArray[sbStartIndex] = sbCLI;
                   retrievedScriptArray.push('--ci');
 
-                  fs.appendFileSync(path.resolve(rootDir, './vscode.message-log.txt'), `retrieved Script: ${retrievedScriptArray}\n.\n.***End log***\n.\n.`);
+                  fs.appendFileSync(debugLog, `\nRetrieved package.json script: ${retrievedScriptArray}\n`);
 
                   // now launch Storybook as a child process
                   const childProcessArguments = (platform === 'win32') ? ['run', 'storybook'] : retrievedScriptArray;
@@ -364,8 +261,7 @@ export function activate(context: vscode.ExtensionContext) {
                   
                   statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
                   
-                  /* Aesop debug logging */
-                  fs.appendFileSync(path.resolve(rootDir, './vscode.message-log.txt'), `@runSb command is ${childProcessCommand} with args ${childProcessArguments}\n.\n.***End log***\n.\n.`);
+                  fs.appendFileSync(debugLog, `Running storybook with command:\n ${childProcessCommand}\n and arguments: ${childProcessArguments}\n`);
 
                   const runSb = spawn(childProcessCommand, childProcessArguments, {
                     cwd: rootDir,
@@ -385,16 +281,14 @@ export function activate(context: vscode.ExtensionContext) {
                   // process.stdin.pipe(runSb.stdin, {end: false});
 
                   // process.stdout.on('data', (data) => {
-                  //   fs.appendFileSync(path.resolve(rootDir, './vscode.message-log.txt'), `Process received ${data}\n.\n.***End log***\n.\n.`);
+                  //   fs.appendFileSync(debugLog, `Process received ${data}\n.\n.***End log***\n.\n.`);
                   // })
 
                   // Storybook outputs three messages to the terminal as it spins up
                   // grab the port from the last message to listen in on the process
                   runSb.stdout.on('data', (data) => {
-                    // if (emittedAesop === true) return;
-
-                    /* Aesop debug logging */
-                    fs.appendFileSync(path.resolve(rootDir, './vscode.message-log.txt'), `@runSb.stdout.on('data'), Counter is ${counter}. Data is ${data}\n.\n.***End log***\n.\n.`);
+                    
+                    fs.appendFileSync(debugLog, `@runSb.stdout.on('data'), Counter is ${counter}. Data is ${data}\n.\n.***End log***\n.\n.`);
 
                     vscode.window.showInformationMessage(data);
 
@@ -405,13 +299,13 @@ export function activate(context: vscode.ExtensionContext) {
                       for (let i = 100; i < str.length; i += 1) {
 
                         /* Aesop debug logging */
-                        fs.appendFileSync(path.resolve(rootDir, './vscode.message-log.txt'), `@runSb.stdout.on('data') FOR LOOP, counter is ${counter} \n\n***End log***\n\n`);
+                        fs.appendFileSync(debugLog, `@runSb.stdout.on('data') FOR LOOP, counter is ${counter} \n\n***End log***\n\n`);
                         
                         if (str[i].includes('localhost')) {
                           /* Aesop debug logging */
-                          fs.appendFileSync(path.resolve(rootDir, './vscode.message-log.txt'), `@runSb.stdout.on('data') - sSTR[I] IS: ${str[i]}`);
+                          fs.appendFileSync(debugLog, `@runSb.stdout.on('data') - sSTR[I] IS: ${str[i]}`);
                           let foundPort = parseInt(str[i].match(/[^0-9]/g));
-                          fs.appendFileSync(path.resolve(rootDir, './vscode.message-log.txt'), `@runSb.stdout.on('data') - str[i] includes, counter is ${counter} with found port: ${foundPort}`);
+                          fs.appendFileSync(debugLog, `@runSb.stdout.on('data') - str[i] includes, counter is ${counter} with found port: ${foundPort}`);
   
                           aesopEmitter.emit('sb_on', foundPort);
                         }
@@ -419,14 +313,15 @@ export function activate(context: vscode.ExtensionContext) {
                     }
                   });
 
-                  runSb.on('end', () => {
-                    fs.appendFileSync(path.resolve(rootDir, './vscode.message-log.txt'), `Storybook process ended.`);
+                  /* THIS LOGIC IS FLAWED; 'RUN STORYBOOK' COMMAND HAS A SUB-PROCESS */
+                  runSb.on('close', () => {
+                    fs.appendFileSync(debugLog, `Storybook process ended.`);
                     console.log('Storybook process ended.');
-                    // process.stdout.write('Storybook process ended.');
+                    retrievePort(runSb.pid);
                   });
 
                   runSb.on('error', (err) => {
-                    fs.appendFileSync(path.resolve(rootDir, './vscode.message-log.txt'), `Error starting Storybook: ${err}`);
+                    fs.appendFileSync(debugLog, `Error starting Storybook: ${err}`);
                     process.exit(1);
                   });
 
