@@ -32,7 +32,7 @@ export function activate(context: vscode.ExtensionContext) {
 	};
 
 	const command = commands[platform];
-	let instances = 0;
+	let currentPanel: vscode.WebviewPanel | undefined = undefined;
 	//@TODO: if aesop already opened sb in webview - subsequent calls to aesop should not open a new webview
 
 	//set context "aesop-awake" to true; enabling views
@@ -234,34 +234,19 @@ export function activate(context: vscode.ExtensionContext) {
 		}) //close fs access
 
 		aesopEmitter.on('sb_on', () => {
-			createAesopOnce(PORT, host);
+			createAesop(PORT, host);
 		});
 
-		const createAesopOnce = once(createAesop);
-
-		function once(func) {
-
-			return function addedOnce(...args) {
-
-				if (instances < 1) {
-					instances += 1;
-					const panel = func(...args);
-					panel.onDidDispose(() => {
-						vscode.window.showInformationMessage(`We got a disposed`);
-						instances = 0
-					}, null, context.subscriptions);
-					return;
+		function createAesop(PORT: number, host: string): void {
+			//currentPanel stores our webview. If createAesop is called with an active webview open, display an error message. If not, create a new panel and reassign global variable.
+			if (currentPanel) {
+				 vscode.window.showErrorMessage(`Aesop has already been run.`);
+				 return; 
 				}
-				vscode.window.showInformationMessage(`Aesop has already been run`)
-				throw new Error()
-
-			}
-		}
-
-		function createAesop(PORT, host) {
+		
 			statusText.hide();
 			vscode.window.showInformationMessage(`Welcome to Aesop Storybook`);
-			const panel = vscode.window.createWebviewPanel(
+			currentPanel = vscode.window.createWebviewPanel(
 				'aesop-sb',
 				'Aesop',
 				vscode.ViewColumn.Beside,
@@ -293,12 +278,9 @@ export function activate(context: vscode.ExtensionContext) {
 				</body>
 			</html>`
 
-
-			// panel.onDidDispose(() => {
-			// 	vscode.window.showInformationMessage(`We got a disposed`);
-			//   },
-			//   null,
-			//   context.subscriptions)
+			currentPanel.onDidDispose(() => {
+				currentPanel = undefined;
+			}, null, context.subscriptions);
 
 			return panel;
 		} // close createAesop helper function
