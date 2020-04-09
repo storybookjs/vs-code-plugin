@@ -261,7 +261,7 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 			);
 
-			panel.webview.html = `
+			currentPanel.webview.html = `
 			<!DOCTYPE html>
 			<html lang="en">
 				<head>
@@ -282,7 +282,6 @@ export function activate(context: vscode.ExtensionContext) {
 				currentPanel = undefined;
 			}, null, context.subscriptions);
 
-			return panel;
 		} // close createAesop helper function
 
 
