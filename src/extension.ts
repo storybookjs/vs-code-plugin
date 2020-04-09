@@ -10,8 +10,8 @@ import * as os from 'os';
 export function activate(context: vscode.ExtensionContext) {
 
 	//define PORT and host variables to feed the webview content from SB server
-	let PORT : number;
-	let host : string = 'localhost';
+	let PORT: number;
+	let host: string = 'localhost';//arl
 	const aesopEmitter = new events.EventEmitter();
 	let emittedAesop = false;
 
@@ -30,8 +30,9 @@ export function activate(context: vscode.ExtensionContext) {
 			args: ['-a', '-n', '-o'],
 		},
 	};
-		
+
 	const command = commands[platform];
+	let instances = 0;
 	//@TODO: if aesop already opened sb in webview - subsequent calls to aesop should not open a new webview
 
 	//set context "aesop-awake" to true; enabling views
@@ -43,13 +44,13 @@ export function activate(context: vscode.ExtensionContext) {
 	statusText.color = "#FFFFFF";
 	statusText.command = undefined;
 	statusText.tooltip = "Aesop status";
-	
+
 	//create disposable to register Aesop Awaken command to subscriptions
-	let disposable : vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
+	let disposable: vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
 		statusText.show();
 
 		//declare variable to toggle whether a running SB process was found
-		let foundSb : Boolean = false;
+		let foundSb: Boolean = false;
 
 		//define a path to the user's root working directory
 		const rootDir = fileURLToPath(vscode.workspace.workspaceFolders[0].uri.toString(true));
@@ -61,30 +62,31 @@ export function activate(context: vscode.ExtensionContext) {
 			if (err) {
 				vscode.window.showErrorMessage(`Aesop could not find Storybook as a dependency in the active folder, ${rootDir}`);
 				throw new Error('Error finding a storybook project')
-			}	else {
+			} else {
 				statusText.text = "Aesop found a Storybook project."
 
 				//check to see if a storybook node process is already running
-					ps.lookup (
-						{command: 'node',
+				ps.lookup(
+					{
+						command: 'node',
 						psargs: 'ux'
-					}, (err : Error, resultList : any) => {
-						if (err){
+					}, (err: Error, resultList: any) => {
+						if (err) {
 							vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
 							statusText.dispose();
 							throw new Error('Failed looking for running Node processes.');
-							
+
 						} else {
 							//notify the user that Aesop is checking for a running Storybook instances
 							statusText.text = `Reviewing Node processes...`;
 
 							//if the process lookup was able to find running processes, iterate through to review them
 							resultList.forEach((process) => {
-		
+
 								//check if any running processes are Storybook processes
 								//stretch feature: check for multiple instances of storybook and reconcile
 
-								if(process.arguments[0].includes('node_modules') && process.arguments[0].includes('storybook')){
+								if (process.arguments[0].includes('node_modules') && process.arguments[0].includes('storybook')) {
 
 									//if so, extract port number and use that value to populate the webview with that contents
 									const pFlagIndex = process.arguments.indexOf('-p');
@@ -93,8 +95,8 @@ export function activate(context: vscode.ExtensionContext) {
 									const processPid = parseInt(process['pid']).toString();
 
 									//if a port flag has been defined in the process args, retrieve the user's config
-									if (pFlagIndex !== -1){
-										PORT = parseInt(process.arguments[pFlagIndex+1]);
+									if (pFlagIndex !== -1) {
+										PORT = parseInt(process.arguments[pFlagIndex + 1]);
 										aesopEmitter.emit('sb_on')
 										return;
 									} else {
@@ -115,7 +117,7 @@ export function activate(context: vscode.ExtensionContext) {
 											process.send('killGrep');
 											return;
 										})
-										
+
 										process.on('killGrep', () => {
 											console.log(`Killed Grep`);
 											grepProcess.kill();
@@ -126,17 +128,17 @@ export function activate(context: vscode.ExtensionContext) {
 											netStatProcess.kill();
 										});
 
-										netStatProcess.stdout.on('exit', (code) =>{
+										netStatProcess.stdout.on('exit', (code) => {
 											vscode.window.showInformationMessage(`Netstat ended with ${code}`);
 										})
-										
-										grepProcess.stdout.on('exit', (code) =>{
+
+										grepProcess.stdout.on('exit', (code) => {
 											vscode.window.showInformationMessage(`Grep ended with ${code}`);
 										})
 									}
 									//set foundSb to true to prevent our function from running another process
 									foundSb = true;
-									
+
 									//once port is known, fire event emitter to instantiate webview
 									statusText.text = `Retrieving running Storybook process...`;
 
@@ -144,41 +146,41 @@ export function activate(context: vscode.ExtensionContext) {
 							}) //---> close resultList.forEach()
 
 							//having checked running Node processes, set that variable to true
-						
+
 							//if no processes matched 'storybook', we will have to spin up the storybook server
-							if (foundSb === false){
-								
+							if (foundSb === false) {
+
 								//starts by checking for/extracting any port flags from the SB script in the package.json
 								fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
-									if (err){
+									if (err) {
 										vscode.window.showErrorMessage(`Aesop is attempting to read ${rootDir}. Is there a package.json file here?`);
 										statusText.dispose();
-									}	else {
+									} else {
 										statusText.text = `Checking package.json...`;
 
 										//enter the package.JSON file and retrieve its contents as an object
 										let packageJSON = JSON.parse(data.toString());
 										let storybookScript = packageJSON.scripts.storybook;
-										
+
 										//iterate through the text string (stored on "storybook" key) and parse out port flag
 										//it is more helpful to split it into an array separated by whitespace to grab this
 										let retrievedScriptArray = storybookScript.split(' ');
-										
+
 										//@TODO if script already includes --ci, no need to add it
 
 										//older Windows systems support here: check platform, change process command accordingly
-										let platform : NodeJS.Platform = os.platform();
+										let platform: NodeJS.Platform = os.platform();
 
 										const sbCLI = './node_modules/.bin/start-storybook'
 										const sbStartIndex = retrievedScriptArray.indexOf('start-storybook')
 										retrievedScriptArray[sbStartIndex] = sbCLI;
-										retrievedScriptArray.push('--ci')				
-										
+										retrievedScriptArray.push('--ci')
+
 										//now launch the child process on the port you've derived
 										const childProcessArguments = (platform === 'win32') ? ['run', 'storybook'] : retrievedScriptArray;
 										const childProcessCommand = (platform === 'win32') ? 'npm.cmd' : 'node';
-									
-										const runSb = child_process.spawn(childProcessCommand, childProcessArguments, {cwd: rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+
+										const runSb = child_process.spawn(childProcessCommand, childProcessArguments, { cwd: rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
 
 										// if (platform === 'win32') {
 										// 	let runSb = child_process.spawn('npm.cmd', ['run', 'storybook'], {cwd: rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
@@ -199,10 +201,10 @@ export function activate(context: vscode.ExtensionContext) {
 											if (emittedAesop === true) return;
 											let str = data.toString().split(" ");
 											counter += 1;
-											
+
 											if (counter >= 2) {
-												for (let i = 165; i < str.length; i += 1){
-													if(str[i].includes('localhost')) {
+												for (let i = 165; i < str.length; i += 1) {
+													if (str[i].includes('localhost')) {
 														const path = str[i];
 														const regExp = (/[^0-9]/g);
 														PORT = (path.replace(regExp, ""));
@@ -232,10 +234,31 @@ export function activate(context: vscode.ExtensionContext) {
 		}) //close fs access
 
 		aesopEmitter.on('sb_on', () => {
-			createAesop(PORT, host);
+			createAesopOnce(PORT, host);
 		});
-	
-		function createAesop(PORT, host){
+
+		const createAesopOnce = once(createAesop);
+
+		function once(func) {
+
+			return function addedOnce(...args) {
+
+				if (instances < 1) {
+					instances += 1;
+					const panel = func(...args);
+					panel.onDidDispose(() => {
+						vscode.window.showInformationMessage(`We got a disposed`);
+						instances = 0
+					}, null, context.subscriptions);
+					return;
+				}
+				vscode.window.showInformationMessage(`Aesop has already been run`)
+				throw new Error()
+
+			}
+		}
+
+		function createAesop(PORT, host) {
 			statusText.hide();
 			vscode.window.showInformationMessage(`Welcome to Aesop Storybook`);
 			const panel = vscode.window.createWebviewPanel(
@@ -252,7 +275,7 @@ export function activate(context: vscode.ExtensionContext) {
 					localResourceRoots: [vscode.Uri.file(context.extensionPath)],
 				}
 			);
-	
+
 			panel.webview.html = `
 			<!DOCTYPE html>
 			<html lang="en">
@@ -269,7 +292,19 @@ export function activate(context: vscode.ExtensionContext) {
 					<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
 				</body>
 			</html>`
+
+
+			// panel.onDidDispose(() => {
+			// 	vscode.window.showInformationMessage(`We got a disposed`);
+			//   },
+			//   null,
+			//   context.subscriptions)
+
+			return panel;
 		} // close createAesop helper function
+
+
+
 	}); //close disposable
 
 	context.subscriptions.push(disposable);
