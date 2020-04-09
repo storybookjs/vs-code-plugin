@@ -11,8 +11,9 @@ const os = require("os");
 function activate(context) {
     //define PORT and host variables to feed the webview content from SB server
     let PORT;
-    let host = 'localhost';
+    let host = 'localhost'; //arl
     const aesopEmitter = new events.EventEmitter();
+    let emittedAesop = false;
     const platform = os.platform();
     const commands = {
         linux: {
@@ -29,6 +30,7 @@ function activate(context) {
         },
     };
     const command = commands[platform];
+    let instances = 0;
     //@TODO: if aesop already opened sb in webview - subsequent calls to aesop should not open a new webview
     //set context "aesop-awake" to true; enabling views
     vscode.commands.executeCommand("setContext", "aesop-awake", true);
@@ -40,11 +42,7 @@ function activate(context) {
     statusText.tooltip = "Aesop status";
     //create disposable to register Aesop Awaken command to subscriptions
     let disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
-        const outputConsole = vscode.window.createOutputChannel('something');
-        outputConsole.appendLine('testing');
         statusText.show();
-        //declare variable to toggle whether running Node processes have been checked
-        let checkedProcesses = false;
         //declare variable to toggle whether a running SB process was found
         let foundSb = false;
         //define a path to the user's root working directory
@@ -59,7 +57,8 @@ function activate(context) {
             else {
                 statusText.text = "Aesop found a Storybook project.";
                 //check to see if a storybook node process is already running
-                ps.lookup({ command: 'node',
+                ps.lookup({
+                    command: 'node',
                     psargs: 'ux'
                 }, (err, resultList) => {
                     if (err) {
@@ -75,7 +74,6 @@ function activate(context) {
                             //check if any running processes are Storybook processes
                             //stretch feature: check for multiple instances of storybook and reconcile
                             if (process.arguments[0].includes('node_modules') && process.arguments[0].includes('storybook')) {
-                                outputConsole.append(`process.arguments: ${process.arguments[0]}`);
                                 //if so, extract port number and use that value to populate the webview with that contents
                                 const pFlagIndex = process.arguments.indexOf('-p');
                                 //also grab the process id to use netstat in the else condition
@@ -84,9 +82,9 @@ function activate(context) {
                                 if (pFlagIndex !== -1) {
                                     PORT = parseInt(process.arguments[pFlagIndex + 1]);
                                     aesopEmitter.emit('sb_on');
+                                    return;
                                 }
                                 else {
-                                    outputConsole.appendLine(`hit inside netstat stuff`);
                                     //if no port flag defined, dynamically retrieve port with netstat
                                     const netStatProcess = child_process.spawn(command.cmd, command.args);
                                     const grepProcess = child_process.spawn('grep', [processPid]);
@@ -99,6 +97,17 @@ function activate(context) {
                                         console.log(parts);
                                         PORT = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
                                         aesopEmitter.emit('sb_on');
+                                        process.send('killNet');
+                                        process.send('killGrep');
+                                        return;
+                                    });
+                                    process.on('killGrep', () => {
+                                        console.log(`Killed Grep`);
+                                        grepProcess.kill();
+                                    });
+                                    netStatProcess.on('killNet', () => {
+                                        console.log(`Killed Net`);
+                                        netStatProcess.kill();
                                     });
                                     netStatProcess.stdout.on('exit', (code) => {
                                         vscode.window.showInformationMessage(`Netstat ended with ${code}`);
@@ -138,30 +147,33 @@ function activate(context) {
                                     retrievedScriptArray[sbStartIndex] = sbCLI;
                                     retrievedScriptArray.push('--ci');
                                     //now launch the child process on the port you've derived
-                                    let runSb;
-                                    if (platform === 'win32') {
-                                        runSb = child_process.spawn('npm.cmd', ['run', 'storybook'], { cwd: rootDir, detached: false, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
-                                    }
-                                    else {
-                                        runSb = child_process.spawn('node', retrievedScriptArray, { cwd: rootDir, detached: false, env: process.env });
-                                    }
+                                    const childProcessArguments = (platform === 'win32') ? ['run', 'storybook'] : retrievedScriptArray;
+                                    const childProcessCommand = (platform === 'win32') ? 'npm.cmd' : 'node';
+                                    const runSb = child_process.spawn(childProcessCommand, childProcessArguments, { cwd: rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+                                    // if (platform === 'win32') {
+                                    // 	let runSb = child_process.spawn('npm.cmd', ['run', 'storybook'], {cwd: rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+                                    // } else {
+                                    // 	let runSb =	child_process.spawn('node', retrievedScriptArray, {cwd: rootDir, detached: false, env: process.env });
+                                    // }
                                     statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
                                     runSb.stdout.setEncoding('utf8');
                                     let counter = 0;
                                     //Storybook outputs three messages to the terminal as it spins up
                                     //grab the port from the last message to listen in on the process
                                     runSb.stdout.on('data', (data) => {
+                                        if (emittedAesop === true)
+                                            return;
                                         let str = data.toString().split(" ");
                                         counter += 1;
                                         if (counter >= 2) {
-                                            outputConsole.append(`IF COUNTER HIT, ${counter}`);
                                             for (let i = 165; i < str.length; i += 1) {
                                                 if (str[i].includes('localhost')) {
                                                     const path = str[i];
                                                     const regExp = (/[^0-9]/g);
                                                     PORT = (path.replace(regExp, ""));
+                                                    emittedAesop = true;
                                                     aesopEmitter.emit('sb_on');
-                                                    break;
+                                                    return;
                                                 }
                                             }
                                         }
@@ -171,7 +183,7 @@ function activate(context) {
                                         process.exit(1);
                                     });
                                     //make sure the child process is terminated on process exit
-                                    runSb.on('close', (code) => {
+                                    runSb.on('exit', (code) => {
                                         console.log(`child process exited with code ${code}`);
                                     });
                                 }
@@ -183,8 +195,24 @@ function activate(context) {
             } //close else statement in fs.access
         }); //close fs access
         aesopEmitter.on('sb_on', () => {
-            createAesop(PORT, host);
+            createAesopOnce(PORT, host);
         });
+        const createAesopOnce = once(createAesop);
+        function once(func) {
+            return function addedOnce(...args) {
+                if (instances < 1) {
+                    instances += 1;
+                    const panel = func(...args);
+                    panel.onDidDispose(() => {
+                        vscode.window.showInformationMessage(`We got a disposed`);
+                        instances = 0;
+                    }, null, context.subscriptions);
+                    return;
+                }
+                vscode.window.showInformationMessage(`Aesop has already been run`);
+                throw new Error();
+            };
+        }
         function createAesop(PORT, host) {
             statusText.hide();
             vscode.window.showInformationMessage(`Welcome to Aesop Storybook`);
@@ -213,12 +241,19 @@ function activate(context) {
 					<iframe src="http://${host}:${PORT}" width="100%" height="600"></iframe>
 				</body>
 			</html>`;
+            // panel.onDidDispose(() => {
+            // 	vscode.window.showInformationMessage(`We got a disposed`);
+            //   },
+            //   null,
+            //   context.subscriptions)
+            return panel;
         } // close createAesop helper function
     }); //close disposable
     context.subscriptions.push(disposable);
 }
 exports.activate = activate;
 function deactivate() {
+    process.exit();
 }
 exports.deactivate = deactivate;
 //# sourceMappingURL=extension.js.map

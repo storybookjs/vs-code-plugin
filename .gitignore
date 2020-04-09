@@ -4,6 +4,9 @@
 #ignore dist folder
 /dist
 
+#ignore out
+/out
+
 #ignore react node modules
 /samples/React_Sample/
 /samples/Vue_Sample/
