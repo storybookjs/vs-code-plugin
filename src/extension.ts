@@ -25,6 +25,8 @@ export function activate(context: vscode.ExtensionContext) {
 	vscode.commands.executeCommand("setContext", "aesop-awake", true);
 
 	//create the status bar to let the user know what Aesop is doing
+
+	//create status could also be modularized
 	const statusText = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 7);
 	statusText.text = "Aesop is finding your Storybook dependency..."
 	statusText.color = "#FFFFFF";
