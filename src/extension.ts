@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { fileURLToPath } from 'url';
 import * as events from 'events';
 import sbChecks from './utils/sbChecks';
-import logger from './utils/logger'
+import logger from './utils/logger';
 import AesopViewCreator from './webview/create-webview';
 import ProcessService from './processes/process.service'
 
@@ -14,9 +14,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 	//define PORT and host variables to feed the webview content from SB server
 	let PORT: number;
-	let host: string = 'localhost';//arl
+	let host: string = 'localhost';
 	const aesopEmitter = new events.EventEmitter();
-	let emittedAesop = false;
+	// let emittedAesop = false;
 
 	let currentPanel: vscode.WebviewPanel | undefined = undefined;
 	//@TODO: if aesop already opened sb in webview - subsequent calls to aesop should not open a new webview
@@ -40,32 +40,54 @@ export function activate(context: vscode.ExtensionContext) {
 
 		//define a path to the user's root working directory
 		const rootDir: string = fileURLToPath(vscode.workspace.workspaceFolders[0].uri.toString(true));
-		const sbChecker = new sbChecks(rootDir, vscode);
-		const processService = new ProcessService(rootDir, vscode, statusText);
-		const viewCreator = new AesopViewCreator(vscode, context, statusText, currentPanel)
 
+		//manual dependency injection
+		//Should I pass the event emitter?
+		//dependencies should be injected in order, and placed in an object.
+
+		//declare core vscode functionality to be injected into services
+		const vscodeDepPack = {
+			vscode,
+			rootDir,
+			statusText,
+			currentPanel,
+			aesopEmitter,
+			context
+		}
+
+		//each service deconstructs what it needs and stores the references in the constructor
+		//maybe rename sbChecker to validatorService
+		const sbChecker = new sbChecks(vscodeDepPack);
+		const processService = new ProcessService(vscodeDepPack);
+		const viewCreator = new AesopViewCreator(vscodeDepPack);
+
+		//pubsub pattern, creating event listeners for each portion
+
+		const errorHandler = (error) => {
+			vscode.window.showErrorMessage(`Something went wrong!`)
+			statusText.dispose();
+			logger.write(error);
+			process.exit()
+		}
+
+		aesopEmitter.on('error' , errorHandler)
+		process.on('unhandledRejection', errorHandler)
+
+		//determined that storybook is a dependency
+		aesopEmitter.once('found_dependency', sbChecker.nodeProc)
+		//found open node processes
+		aesopEmitter.once('found_nodeps', sbChecker.storyBookProc)
+		//found  a storybook process
+		aesopEmitter.once('found_storybookps', processService.findLocation)
+		//no storybook found, start sb process from extension
+		aesopEmitter.once('start_storybook', processService.startStorybook);
+		//attempt to create view
+		aesopEmitter.once('create_webview', viewCreator.createAesop);
+
+
+
+		//kickstart process
 		sbChecker.dependency();
-		const process = sbChecker.nodeProc();
-		const resultsList = process.then(({ status, payload }) => {
-			if (status) return sbChecker.storyBookProc(payload)
-		})
-		const portBool = resultsList.then(({ status, payload }) => {
-			if (status) return processService.locationViaPort(payload)
-		})
-		let port = portBool.then(({ status, payload }) => {
-			if (status) return processService.locationViaNetStat(payload);
-		})
-
-
-
-		// aesopEmitter.on('sb_on', () => {
-		// 	logger.write(`Attempting to create webview panel`);
-		// 	createAesop(PORT, host);
-		// });
-
-
-
-
 
 	}); //close disposable
 

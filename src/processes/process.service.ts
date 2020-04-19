@@ -13,14 +13,28 @@ class ProcessService {
     private rootDir: string;
     private vscode;
     private statusText;
-    constructor(rootDir: string, vscode, statusText) {
+    private aesopEmitter;
+    constructor({ rootDir, vscode, statusText, aesopEmitter}) {
         this.rootDir = rootDir;
         this.vscode = vscode;
         this.statusText = statusText;
+        this.aesopEmitter = aesopEmitter;
+    }
+
+//make location checks private methods that are referred to in a findLocation check
+
+    public findLocation(process) {
+        const processPid = parseInt(process['pid']).toString();
+        this.locationViaNetStat(processPid);
+        const phaseStr = `Found Storybook location via Netstat`
+        logger.write(phaseStr);
+        this.aesopEmitter.emit('create_webview', this.port, 'localhost' , phaseStr);
     }
 
 
-    locationViaPort(process): object {
+    //do we still need this? What if the port flag is defined but storybook is running on another port?
+
+    private locationViaPortflag(process): object {
         const pFlagIndex = process.arguments.indexOf('-p');
 
         //also grab the process id to use netstat in the else condition
@@ -40,28 +54,28 @@ class ProcessService {
         };
     };
 
-    async locationViaNetStat(processPid): Promise<any> {
+    private async locationViaNetStat(processPid): Promise<any> {
         const netStatProcess = child_process.spawn(command.cmd, command.args);
         const grepProcess = child_process.spawn('grep', [processPid]);
 
         netStatProcess.stdout.pipe(grepProcess.stdin);
         grepProcess.stdout.setEncoding('utf8');
 
-        grepProcess.on('killGrep', () => {
+        grepProcess.once('killGrep', () => {
             console.log(`Killed Grep`);
             grepProcess.kill();
         });
 
-        netStatProcess.on('killNet', () => {
+        netStatProcess.once('killNet', () => {
             console.log(`Killed Net`);
             netStatProcess.kill();
         });
 
-        netStatProcess.stdout.on('exit', (code) => {
+        netStatProcess.stdout.once('exit', (code) => {
             this.vscode.window.showInformationMessage(`Netstat ended with ${code}`);
         })
 
-        grepProcess.stdout.on('exit', (code) => {
+        grepProcess.stdout.once('exit', (code) => {
             this.vscode.window.showInformationMessage(`Grep ended with ${code}`);
         })
 
@@ -74,6 +88,7 @@ class ProcessService {
                 const partIndex = (platform === 'win32') ? 1 : 3;
                 this.port = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
                 // aesopEmitter.emit('sb_on');
+                //do we need to remove 
                 process.send('killNet');
                 process.send('killGrep');
                 resolve(this.port);

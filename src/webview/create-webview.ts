@@ -2,12 +2,10 @@ import logger from '../utils/logger';
 
 class AesopViewCreator {
     private vscode;
-    private host;
-    private port;
     private statusText;
     private currentPanel;
     private context;
-    constructor(vscode, context, statusText, currentPanel) {
+    constructor({ vscode, context, statusText, currentPanel }) {
         this.vscode = vscode;
         this.context = context;
         this.statusText = statusText;
