@@ -8,10 +8,6 @@ import ProcessService from './processes/process.service'
 
 
 export function activate(context: vscode.ExtensionContext) {
-	//possibly just have multiple event emitters and then structure it like express
-
-
-
 	//define PORT and host variables to feed the webview content from SB server
 	let PORT: number;
 	let host: string = 'localhost';
@@ -24,7 +20,6 @@ export function activate(context: vscode.ExtensionContext) {
 	//set context "aesop-awake" to true; enabling views
 	vscode.commands.executeCommand("setContext", "aesop-awake", true);
 
-	//create the status bar to let the user know what Aesop is doing
 
 	//create status could also be modularized
 	const statusText = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 7);
@@ -37,20 +32,20 @@ export function activate(context: vscode.ExtensionContext) {
 	let disposable: vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
 		statusText.show();
 
-
+		//creates status bar during run up of webview
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
 			title: `Running Aesop For Storybook`,
 			cancellable: true
 		}, (progress, token) => {
-
-
-
+			//if a user hits the cancel button on the loading message, the process ends
 			token.onCancellationRequested(() => {
 				console.log('User has cancelled Aesop.')
 				statusText.dispose();
 				process.exit(1)
 			});
+
+			//for each stage of the startup, increment the progress counter
 
 			//determined that storybook is a dependency
 			aesopEmitter.once('found_dependency', () => progress.report({ message: 'Found the Storybook Dependency', increment: 10 }));
@@ -65,6 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
 			
 			aesopEmitter.once('create_webview', () => progress.report({message: `Creating Webview`, increment: 25}));
 
+			//once the returned promise resolves, the loading message disappears
 			var p = new Promise(resolve => {
 				return aesopEmitter.once('create_webview', () => resolve());
 			});
@@ -72,15 +68,12 @@ export function activate(context: vscode.ExtensionContext) {
 			return p;
 		})
 
-		//create a callback that encompasses
+
 
 		//define a path to the user's root working directory
 		const rootDir: string = fileURLToPath(vscode.workspace.workspaceFolders[0].uri.toString(true));
 
 		//manual dependency injection
-		//Should I pass the event emitter?
-		//dependencies should be injected in order, and placed in an object.
-
 		//declare core vscode functionality to be injected into services
 		const vscodeDepPack = {
 			vscode,

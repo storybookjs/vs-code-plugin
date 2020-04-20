@@ -4,12 +4,6 @@ import logger from './logger'
 import * as util from 'util';
 import * as ps from 'ps-node';
 
-//create interfaces for each checker function
-//should look like:
-//checkDto: Object {
-//status: boolean;
-//payload: any;
-//}
 
 class StorybookChecker {
     rootDir: string;
