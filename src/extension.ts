@@ -38,6 +38,42 @@ export function activate(context: vscode.ExtensionContext) {
 		statusText.show();
 
 
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: `Running Aesop For Storybook`,
+			cancellable: true
+		}, (progress, token) => {
+
+
+
+			token.onCancellationRequested(() => {
+				console.log('User has cancelled Aesop.')
+				statusText.dispose();
+				process.exit(1)
+			});
+
+			//determined that storybook is a dependency
+			aesopEmitter.once('found_dependency', () => progress.report({ message: 'Found the Storybook Dependency', increment: 10 }));
+	
+			//found open node processes
+			aesopEmitter.once('found_nodeps', () => progress.report({message: `Found Node Processes`, increment: 25}))
+			//found  a storybook process
+			aesopEmitter.once('found_storybookps', () => progress.report({message: `Found a Storybook Process`, increment: 40}))
+			//no storybook found, start sb process from extension
+			aesopEmitter.once('start_storybook', () => progress.report({message: `Starting Storybook for you`, increment: 40}));
+			//attempt to create view
+			
+			aesopEmitter.once('create_webview', () => progress.report({message: `Creating Webview`, increment: 25}));
+
+			var p = new Promise(resolve => {
+				return aesopEmitter.once('create_webview', () => resolve());
+			});
+
+			return p;
+		})
+
+		//create a callback that encompasses
+
 		//define a path to the user's root working directory
 		const rootDir: string = fileURLToPath(vscode.workspace.workspaceFolders[0].uri.toString(true));
 
@@ -70,7 +106,7 @@ export function activate(context: vscode.ExtensionContext) {
 			process.exit()
 		}
 
-		aesopEmitter.on('error' , errorHandler)
+		aesopEmitter.on('error', errorHandler)
 		process.on('unhandledRejection', errorHandler)
 
 		//determined that storybook is a dependency
