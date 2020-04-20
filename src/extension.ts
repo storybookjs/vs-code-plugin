@@ -99,7 +99,9 @@ export function activate(context: vscode.ExtensionContext) {
 			process.exit()
 		}
 
+		//handle error events within any callback from aesopEmitter
 		aesopEmitter.on('error', errorHandler)
+		//handle any unhandled promise rejections
 		process.on('unhandledRejection', errorHandler)
 
 		//determined that storybook is a dependency
