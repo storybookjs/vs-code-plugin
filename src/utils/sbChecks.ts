@@ -54,34 +54,17 @@ class StorybookChecker {
 
     }
 
-    //    async nodeProc(): {
-        // const psLookup = util.promisify(ps.lookup);
-
-        // try {
-        //     const resultList: [] = await psLookup({ command: 'node', psargs: 'ux' });
-        //     return {
-        //         status: true,
-        //         payload: resultList
-        //     }
-        // } catch (error) {
-        //     const errMsg = `Error looking up processes: ${error}`
-        //     logger.write(errMsg);
-        //     throw new Error(errMsg);
-        //     return {
-        //         status: false,
-        //         payload: null
-        //     }
-        // }
-
     //can definitely optimize
     storyBookProc(resultList: []): void {
         logger.write('Looking for Storybook Process!')
+        let process: string;
         for (let i = 0; i < resultList.length; i++) {
-            let process = resultList[i];
+            process = resultList[i]['arguments'][0];
             //OPTIMIZE THIS
-            if (process.arguments[0].includes('node_modules') && process.arguments[0].includes('storybook')) {
+            if (process.includes('node_modules') && process.includes('storybook')) {
+                const { pid } = resultList[i]
                 logger.write('Found Storybook Proc!')
-                return this.aesopEmitter.emit('found_storybookps', process)
+                return this.aesopEmitter.emit('found_storybookps', pid)
 
             }
         }

@@ -14,7 +14,7 @@ class ProcessService {
     private vscode;
     private statusText;
     private aesopEmitter;
-    constructor({ rootDir, vscode, statusText, aesopEmitter}) {
+    constructor({ rootDir, vscode, statusText, aesopEmitter }) {
         this.rootDir = rootDir;
         this.vscode = vscode;
         this.statusText = statusText;
@@ -24,40 +24,14 @@ class ProcessService {
         this.locationViaNetStat = this.locationViaNetStat.bind(this);
     }
 
-//make location checks private methods that are referred to in a findLocation check
+    //make location checks private methods that are referred to in a findLocation check
 
-    public findLocation(process) {
-        const processPid = parseInt(process['pid']).toString();
+    public findLocation(pid) {
+        const processPid = parseInt(pid).toString();
         this.locationViaNetStat(processPid);
-        const phaseStr = `Found Storybook location via Netstat`
-        logger.write(phaseStr);
-        this.aesopEmitter.emit('create_webview', this.port, 'localhost' , phaseStr);
     }
 
-
-    //do we still need this? What if the port flag is defined but storybook is running on another port?
-
-    private locationViaPortflag(process): object {
-        const pFlagIndex = process.arguments.indexOf('-p');
-
-        //also grab the process id to use netstat in the else condition
-        const processPid = parseInt(process['pid']).toString();
-
-        //if a port flag has been defined in the process args, retrieve the user's config
-        if (pFlagIndex === -1) {
-            return {
-                status: false,
-                payload: null,
-            }
-        }
-        this.port = parseInt(process.arguments[pFlagIndex + 1]);
-        return {
-            status: true,
-            payload: processPid,
-        };
-    };
-
-    private async locationViaNetStat(processPid): Promise<any> {
+    private locationViaNetStat(processPid) {
         const netStatProcess = child_process.spawn(command.cmd, command.args);
         const grepProcess = child_process.spawn('grep', [processPid]);
 
@@ -82,22 +56,23 @@ class ProcessService {
             this.vscode.window.showInformationMessage(`Grep ended with ${code}`);
         })
 
-        const sbPort = await new Promise((resolve, reject) => {
-            grepProcess.stdout.on('data', (data) => {
-                const parts = data.split(/\s/).filter(String);
-                //@TODO: refactor for platform specific or grab port dynamically
-                //Might be useful to use table-parser. idk if that works w/ windows tho
 
-                const partIndex = (platform === 'win32') ? 1 : 3;
-                this.port = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
-                // aesopEmitter.emit('sb_on');
-                //do we need to remove 
-                process.send('killNet');
-                process.send('killGrep');
-                resolve(this.port);
-            })
+        grepProcess.stdout.on('data', (data) => {
+            const parts = data.split(/\s/).filter(String);
+            //@TODO: refactor for platform specific or grab port dynamically
+            //Might be useful to use table-parser. idk if that works w/ windows tho
+
+            const partIndex = (platform === 'win32') ? 1 : 3;
+            this.port = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
+            // aesopEmitter.emit('sb_on');
+            this.aesopEmitter.emit('create_webview', this.port);
+            const phaseStr = `Found Storybook location via Netstat`
+            logger.write(phaseStr);
+
+            //do we need to remove 
+            process.send('killNet');
+            process.send('killGrep');
         })
-        return sbPort;
     }
 
     //MAYBE separate this function?
@@ -162,7 +137,6 @@ class ProcessService {
 
         let callback = (data) => {
             // if (emittedAesop === true) return;
-            logger.write('found data!')
             let str = data.toString().split(" ");
             counter += 1;
 
@@ -184,7 +158,7 @@ class ProcessService {
         callback = callback.bind(this);
 
 
-        runSb.stdout.on('data', callback )
+        runSb.stdout.on('data', callback)
 
         runSb.on('error', (err) => {
             console.log(err);
