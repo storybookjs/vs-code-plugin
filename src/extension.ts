@@ -105,11 +105,11 @@ export function activate(context: vscode.ExtensionContext) {
 		process.on('unhandledRejection', errorHandler)
 
 		//determined that storybook is a dependency
-		aesopEmitter.once('found_dependency', sbChecker.nodeProc)
+		aesopEmitter.once('found_dependency', sbChecker.nodeProc);
 		//found open node processes
-		aesopEmitter.once('found_nodeps', sbChecker.storyBookProc)
+		aesopEmitter.once('found_nodeps', sbChecker.storyBookProc);
 		//found  a storybook process
-		aesopEmitter.once('found_storybookps', processService.findLocation)
+		aesopEmitter.once('found_storybookps', processService.findLocation);
 		//no storybook found, start sb process from extension
 		aesopEmitter.once('start_storybook', processService.startStorybook);
 		//attempt to create view

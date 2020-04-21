@@ -9,7 +9,7 @@ const { command, platform } = commands;
 
 class ProcessService {
     public port: number;
-    private isSbFound: boolean;
+    // private isSbFound: boolean;
     private rootDir: string;
     private vscode;
     private statusText;
@@ -19,6 +19,9 @@ class ProcessService {
         this.vscode = vscode;
         this.statusText = statusText;
         this.aesopEmitter = aesopEmitter;
+        this.startStorybook = this.startStorybook.bind(this);
+        this.findLocation = this.findLocation.bind(this);
+        this.locationViaNetStat = this.locationViaNetStat.bind(this);
     }
 
 //make location checks private methods that are referred to in a findLocation check
@@ -104,6 +107,7 @@ class ProcessService {
 
     startStorybook() {
         let data: Buffer;
+        logger.write('Starting Storybook for you! In process.service.ts / startStorybook')
 
         try {
             data = fs.readFileSync(path.join(this.rootDir, 'package.json'));
@@ -156,8 +160,9 @@ class ProcessService {
         //Storybook outputs three messages to the terminal as it spins up
         //grab the port from the last message to listen in on the process
 
-        runSb.stdout.on('data', (data) => {
+        let callback = (data) => {
             // if (emittedAesop === true) return;
+            logger.write('found data!')
             let str = data.toString().split(" ");
             counter += 1;
 
@@ -169,11 +174,17 @@ class ProcessService {
                         this.port = (path.replace(regExp, ""));
                         // emittedAesop = true;
                         // aesopEmitter.emit('sb_on');
+                        logger.write('Found the third standard output from the storybook process, attempting to create webview')
+                        this.aesopEmitter.emit('create_webview');
                         return true;
                     }
                 }
             }
-        })
+        };
+        callback = callback.bind(this);
+
+
+        runSb.stdout.on('data', callback )
 
         runSb.on('error', (err) => {
             console.log(err);

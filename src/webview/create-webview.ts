@@ -10,6 +10,7 @@ class AesopViewCreator {
         this.context = context;
         this.statusText = statusText;
         this.currentPanel = currentPanel;
+        this.createAesop = this.createAesop.bind(this);
     }
 
 
