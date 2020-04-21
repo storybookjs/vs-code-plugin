@@ -175,7 +175,7 @@ class ProcessService {
                         // emittedAesop = true;
                         // aesopEmitter.emit('sb_on');
                         logger.write('Found the third standard output from the storybook process, attempting to create webview')
-                        this.aesopEmitter.emit('create_webview');
+                        this.aesopEmitter.emit('create_webview', this.port);
                         return true;
                     }
                 }

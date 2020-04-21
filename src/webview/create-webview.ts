@@ -14,8 +14,8 @@ class AesopViewCreator {
     }
 
 
-    createAesop(port: number, host: string, phase: string): void {
-        logger.write(`Attempting to create webview from ${phase}`)
+    createAesop(port: number, host: string = 'localhost'): void {
+        logger.write(`Attempting to create webview`)
         //currentPanel stores our webview. If createAesop is called with an active webview open, display an error message. If not, create a new panel and reassign global variable.
         if (this.currentPanel) {
             this.vscode.window.showErrorMessage(`Aesop has already been run.`);
