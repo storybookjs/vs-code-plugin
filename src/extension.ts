@@ -9,6 +9,7 @@ import ProcessService from './processes/process.service'
 
 export function activate(context: vscode.ExtensionContext) {
 	//define PORT and host variables to feed the webview content from SB server
+	const fileName: string = 'extension.ts';
 	let PORT: number;
 	let host: string = 'localhost';
 	const aesopEmitter = new events.EventEmitter();
@@ -41,7 +42,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}, (progress, token) => {
 			//if a user hits the cancel button on the loading message, the process ends
 			token.onCancellationRequested(() => {
-				console.log('User has cancelled Aesop.')
+				logger.write(`User has cancelled Aesop`, fileName, 'withProgress')
 				statusText.dispose();
 				process.exit(1)
 			});
@@ -96,7 +97,7 @@ export function activate(context: vscode.ExtensionContext) {
 		const errorHandler = (error) => {
 			vscode.window.showErrorMessage(`Something went wrong!`)
 			statusText.dispose();
-			logger.write(error);
+			logger.write(error, fileName, 'errorHandler');
 			process.exit()
 		}
 

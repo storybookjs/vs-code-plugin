@@ -11,6 +11,7 @@ class ProcessService {
     public port: number;
     // private isSbFound: boolean;
     private rootDir: string;
+    private fileName: string;
     private vscode;
     private statusText;
     private aesopEmitter;
@@ -19,6 +20,7 @@ class ProcessService {
         this.vscode = vscode;
         this.statusText = statusText;
         this.aesopEmitter = aesopEmitter;
+        this.fileName = '@process.service.ts'
         this.startStorybook = this.startStorybook.bind(this);
         this.findLocation = this.findLocation.bind(this);
         this.locationViaNetStat = this.locationViaNetStat.bind(this);
@@ -27,11 +29,13 @@ class ProcessService {
     //make location checks private methods that are referred to in a findLocation check
 
     public findLocation(pid) {
+        logger.write('Attempting to find Storybook Location', this.fileName, 'findLocation')
         const processPid = parseInt(pid).toString();
         this.locationViaNetStat(processPid);
     }
 
     private locationViaNetStat(processPid) {
+        logger.write('Attempting to locate via Netstat', this.fileName, 'locationViaNetstat')
         const netStatProcess = child_process.spawn(command.cmd, command.args);
         const grepProcess = child_process.spawn('grep', [processPid]);
 
@@ -59,15 +63,15 @@ class ProcessService {
 
         grepProcess.stdout.on('data', (data) => {
             const parts = data.split(/\s/).filter(String);
+            logger.write(`Getting data from grep process ${parts}`, this.fileName, 'locationViaNetstat/grepProcess')
             //@TODO: refactor for platform specific or grab port dynamically
             //Might be useful to use table-parser. idk if that works w/ windows tho
-
+            
             const partIndex = (platform === 'win32') ? 1 : 3;
             this.port = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
             // aesopEmitter.emit('sb_on');
             this.aesopEmitter.emit('create_webview', this.port);
-            const phaseStr = `Found Storybook location via Netstat`
-            logger.write(phaseStr);
+            logger.write(`Found Storybook location via Netstat`, this.fileName, 'locationViaNetstat/grepProcess');
 
             //do we need to remove 
             process.send('killNet');
@@ -82,11 +86,11 @@ class ProcessService {
 
     startStorybook() {
         let data: Buffer;
-        logger.write('Starting Storybook for you! In process.service.ts / startStorybook')
+        logger.write('Starting Storybook for you!', this.fileName, 'startStorybook')
 
         try {
             data = fs.readFileSync(path.join(this.rootDir, 'package.json'));
-            logger.write('Obtained data from package.json');
+            logger.write('Obtained data from package.json', this.fileName, 'startStorybook');
         } catch (err) {
             this.vscode.window.showErrorMessage(`Aesop is attempting to read ${this.rootDir}. Is there a package.json file here?`);
             this.statusText.dispose();
@@ -118,7 +122,7 @@ class ProcessService {
         const childProcessArguments = (platform === 'win32') ? ['run', 'storybook'] : retrievedScriptArray;
         const childProcessCommand = (platform === 'win32') ? 'npm.cmd' : 'node';
 
-        const runSb = child_process.spawn(childProcessCommand, childProcessArguments, { cwd: this.rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+        const runSb = child_process.spawn(childProcessCommand, childProcessArguments, {cwd: this.rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
 
         // if (platform === 'win32') {
         // 	let runSb = child_process.spawn('npm.cmd', ['run', 'storybook'], {cwd: rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
@@ -136,9 +140,9 @@ class ProcessService {
         //grab the port from the last message to listen in on the process
 
         let callback = (data) => {
-            // if (emittedAesop === true) return;
             let str = data.toString().split(" ");
             counter += 1;
+            logger.write(`This is data: ${data.toString()}`, this.fileName, 'startStorybook/runSb')
 
             if (counter >= 2) {
                 for (let i = 165; i < str.length; i += 1) {
@@ -146,9 +150,8 @@ class ProcessService {
                         const path = str[i];
                         const regExp = (/[^0-9]/g);
                         this.port = (path.replace(regExp, ""));
-                        // emittedAesop = true;
-                        // aesopEmitter.emit('sb_on');
-                        logger.write('Found the third standard output from the storybook process, attempting to create webview')
+
+                        logger.write('Found instance in stdout that includes localhost', this.fileName, 'startStorybook/runSb')
                         this.aesopEmitter.emit('create_webview', this.port);
                         return true;
                     }

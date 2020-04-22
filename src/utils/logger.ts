@@ -1,14 +1,9 @@
 import * as fs from "fs";
 import * as path from 'path';
+import { performance } from 'perf_hooks';
 
 class Logger {
     private writeStream;
-    private date = new Date();
-    private timeStamp:string = this.date.toDateString();
-    private rootDir;
-    private letterken = 'letters'
-    // const date = new Date();
-    // const dateStr = date.toISOString();
 
     open(rootDir: string): void {
         this.writeStream = fs.createWriteStream(path.join(rootDir, `AesopLogs.txt`));
@@ -17,8 +12,8 @@ class Logger {
         })
     }
 
-    write(data: string): void {
-        this.writeStream.write(`at ${this.date.toISOString()}:\n` + data + '\n');
+    write(data: string, fileName: string, functionName: string): void {
+        this.writeStream.write(`[${performance.now()}] ${fileName} / ${functionName}():\n` + data + '\n');
         // fs.appendFileSync(path.join(rootDir, "poop.txt"), data);
     }
 

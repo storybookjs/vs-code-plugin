@@ -1,6 +1,7 @@
 import logger from '../utils/logger';
 
 class AesopViewCreator {
+    private fileName: string;
     private vscode;
     private statusText;
     private currentPanel;
@@ -10,12 +11,13 @@ class AesopViewCreator {
         this.context = context;
         this.statusText = statusText;
         this.currentPanel = currentPanel;
+        this.fileName = 'create-webview.ts'
         this.createAesop = this.createAesop.bind(this);
     }
 
 
     createAesop(port: number, host: string = 'localhost'): void {
-        logger.write(`Attempting to create webview`)
+        logger.write(`Attempting to create webview`, this.fileName, 'createAesop')
         //currentPanel stores our webview. If createAesop is called with an active webview open, display an error message. If not, create a new panel and reassign global variable.
         if (this.currentPanel) {
             this.vscode.window.showErrorMessage(`Aesop has already been run.`);
