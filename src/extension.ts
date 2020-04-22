@@ -10,10 +10,7 @@ import ProcessService from './processes/process.service'
 export function activate(context: vscode.ExtensionContext) {
 	//define PORT and host variables to feed the webview content from SB server
 	const fileName: string = 'extension.ts';
-	let PORT: number;
-	let host: string = 'localhost';
 	const aesopEmitter = new events.EventEmitter();
-	// let emittedAesop = false;
 
 	let currentPanel: vscode.WebviewPanel | undefined = undefined;
 	//@TODO: if aesop already opened sb in webview - subsequent calls to aesop should not open a new webview
@@ -22,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
 	vscode.commands.executeCommand("setContext", "aesop-awake", true);
 
 
-	//create status could also be modularized
+	//create status could also be modularized or removed since we have a progress bar
 	const statusText = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 7);
 	statusText.text = "Aesop is finding your Storybook dependency..."
 	statusText.color = "#FFFFFF";
@@ -42,18 +39,18 @@ export function activate(context: vscode.ExtensionContext) {
 		}, (progress, token) => {
 			//if a user hits the cancel button on the loading message, the process ends
 			token.onCancellationRequested(() => {
-				logger.write(`User has cancelled Aesop`, fileName, 'withProgress')
+				logger.write(`User has cancelled Aesop`, fileName, 'withProgress');
 				statusText.dispose();
-				process.exit(1)
+				process.exit(1);
 			});
 
 			//for each stage of the startup, increment the progress counter
 
 			aesopEmitter.once('found_dependency', () => progress.report({ message: 'Found the Storybook Dependency', increment: 10 }));
-			aesopEmitter.once('found_nodeps', () => progress.report({message: `Found Node Processes`, increment: 25}))
-			aesopEmitter.once('found_storybookps', () => progress.report({message: `Found a Storybook Process`, increment: 40}))
-			aesopEmitter.once('start_storybook', () => progress.report({message: `Starting Storybook for you`, increment: 40}));
-			aesopEmitter.once('create_webview', () => progress.report({message: `Creating Webview`, increment: 25}));
+			aesopEmitter.once('found_nodeps', () => progress.report({ message: `Found Node Processes`, increment: 25 }));
+			aesopEmitter.once('found_storybookps', () => progress.report({ message: `Found a Storybook Process`, increment: 40 }));
+			aesopEmitter.once('start_storybook', () => progress.report({ message: `Starting Storybook for you`, increment: 40 }));
+			aesopEmitter.once('create_webview', () => progress.report({ message: `Creating Webview`, increment: 25 }));
 
 			//once the returned promise resolves, the loading message disappears
 			var p = new Promise(resolve => {
@@ -85,8 +82,7 @@ export function activate(context: vscode.ExtensionContext) {
 		const processService = new ProcessService(vscodeDepPack);
 		const viewCreator = new AesopViewCreator(vscodeDepPack);
 
-		//pubsub pattern, creating event listeners for each portion
-
+		//event listeners used to keep track of function order
 		const errorHandler = (error) => {
 			vscode.window.showErrorMessage(`Something went wrong!`)
 			statusText.dispose();

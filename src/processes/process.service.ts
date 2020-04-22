@@ -9,7 +9,6 @@ const { command, platform } = commands;
 
 class ProcessService {
     public port: number;
-    // private isSbFound: boolean;
     private rootDir: string;
     private fileName: string;
     private vscode;
@@ -100,15 +99,11 @@ class ProcessService {
 
         this.statusText.text = `Checking package.json...`;
 
-        //enter the package.JSON file and retrieve its contents as an object
+        //check if the user has custom configurations for starting storybook
+
         let packageJSON = JSON.parse(data.toString());
         let storybookScript = packageJSON.scripts.storybook;
-
-        //iterate through the text string (stored on "storybook" key) and parse out port flag
-        //it is more helpful to split it into an array separated by whitespace to grab this
         let retrievedScriptArray = storybookScript.split(' ');
-
-        //@TODO if script already includes --ci, no need to add it
 
         //older Windows systems support here: check platform, change process command accordingly
 
@@ -118,17 +113,11 @@ class ProcessService {
         retrievedScriptArray[sbStartIndex] = sbCLI;
         retrievedScriptArray.push('--ci')
 
-        //now launch the child process on the port you've derived
+        //launch storybook using a child process
         const childProcessArguments = (platform === 'win32') ? ['run', 'storybook'] : retrievedScriptArray;
         const childProcessCommand = (platform === 'win32') ? 'npm.cmd' : 'node';
 
         const runSb = child_process.spawn(childProcessCommand, childProcessArguments, {cwd: this.rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
-
-        // if (platform === 'win32') {
-        // 	let runSb = child_process.spawn('npm.cmd', ['run', 'storybook'], {cwd: rootDir, detached: true, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
-        // } else {
-        // 	let runSb =	child_process.spawn('node', retrievedScriptArray, {cwd: rootDir, detached: false, env: process.env });
-        // }
 
         this.statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
 

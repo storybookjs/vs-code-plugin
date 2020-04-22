@@ -14,7 +14,6 @@ class Logger {
 
     write(data: string, fileName: string, functionName: string): void {
         this.writeStream.write(`[${performance.now()}] ${fileName} / ${functionName}():\n` + data + '\n');
-        // fs.appendFileSync(path.join(rootDir, "poop.txt"), data);
     }
 
     end(): void {
