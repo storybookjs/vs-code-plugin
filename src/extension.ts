@@ -30,6 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	//create disposable to register Aesop Awaken command to subscriptions
 	let disposable: vscode.Disposable = vscode.commands.registerCommand('extension.aesopAwaken', () => {
+		aesopEmitter.removeAllListeners();
 		statusText.show();
 
 		//creates status bar during run up of webview
