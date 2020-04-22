@@ -34,7 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
 		aesopEmitter.removeAllListeners();
 		statusText.show();
 
-		//creates status bar during run up of webview
+		//creates progress bar during run up of webview
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
 			title: `Running Aesop For Storybook`,
@@ -49,17 +49,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 			//for each stage of the startup, increment the progress counter
 
-			//determined that storybook is a dependency
 			aesopEmitter.once('found_dependency', () => progress.report({ message: 'Found the Storybook Dependency', increment: 10 }));
-	
-			//found open node processes
 			aesopEmitter.once('found_nodeps', () => progress.report({message: `Found Node Processes`, increment: 25}))
-			//found  a storybook process
 			aesopEmitter.once('found_storybookps', () => progress.report({message: `Found a Storybook Process`, increment: 40}))
-			//no storybook found, start sb process from extension
 			aesopEmitter.once('start_storybook', () => progress.report({message: `Starting Storybook for you`, increment: 40}));
-			//attempt to create view
-			
 			aesopEmitter.once('create_webview', () => progress.report({message: `Creating Webview`, increment: 25}));
 
 			//once the returned promise resolves, the loading message disappears
@@ -101,23 +94,16 @@ export function activate(context: vscode.ExtensionContext) {
 			process.exit()
 		}
 
-		//handle error events within any callback from aesopEmitter
+		//probably should wrap the creation of these event handlers in a function and store on a different file
+
 		aesopEmitter.on('error', errorHandler)
-		//handle any unhandled promise rejections
 		process.on('unhandledRejection', errorHandler)
 
-		//determined that storybook is a dependency
 		aesopEmitter.once('found_dependency', sbChecker.nodeProc);
-		//found open node processes
 		aesopEmitter.once('found_nodeps', sbChecker.storyBookProc);
-		//found  a storybook process
 		aesopEmitter.once('found_storybookps', processService.findLocation);
-		//no storybook found, start sb process from extension
 		aesopEmitter.once('start_storybook', processService.startStorybook);
-		//attempt to create view
 		aesopEmitter.once('create_webview', viewCreator.createAesop);
-
-
 
 		//kickstart process
 		sbChecker.dependency();
