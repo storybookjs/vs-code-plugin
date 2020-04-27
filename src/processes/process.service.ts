@@ -35,47 +35,18 @@ class ProcessService {
 
     private locationViaNetStat(processPid) {
         logger.write('Attempting to locate via Netstat', this.fileName, 'locationViaNetstat')
-        const netStatProcess = child_process.spawn(command.cmd, command.args);
-        const grepProcess = child_process.spawn('grep', [processPid]);
+        const netStatProcess = child_process.spawnSync(command.cmd, command.args);
+        logger.write(`Finished netStat process : ${netStatProcess.stdout}`, this.fileName, 'locationViaNetstat')
+        const grepProcess = child_process.spawnSync('grep', [processPid], {input: netStatProcess.stdout});
+        logger.write(`Finished grep process : ${grepProcess.stdout.toString()}`, this.fileName, 'locationViaNetstat')
 
-        netStatProcess.stdout.pipe(grepProcess.stdin);
-        grepProcess.stdout.setEncoding('utf8');
+        const parts = grepProcess.stdout.toString().split(/\s/).filter(String);
+        const partIndex = (platform === 'win32') ? 1 : 3;
+        this.port = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
 
-        grepProcess.once('killGrep', () => {
-            console.log(`Killed Grep`);
-            grepProcess.kill();
-        });
+        this.aesopEmitter.emit('create_webview', this.port);
+        logger.write(`Found Storybook location via Netstat`, this.fileName, 'locationViaNetstat/grepProcess');
 
-        netStatProcess.once('killNet', () => {
-            console.log(`Killed Net`);
-            netStatProcess.kill();
-        });
-
-        netStatProcess.stdout.once('exit', (code) => {
-            this.vscode.window.showInformationMessage(`Netstat ended with ${code}`);
-        })
-
-        grepProcess.stdout.once('exit', (code) => {
-            this.vscode.window.showInformationMessage(`Grep ended with ${code}`);
-        })
-
-
-        grepProcess.stdout.on('data', (data) => {
-            const parts = data.split(/\s/).filter(String);
-            logger.write(`Getting data from grep process ${parts}`, this.fileName, 'locationViaNetstat/grepProcess')
-            //@TODO: refactor for platform specific or grab port dynamically
-            //Might be useful to use table-parser. idk if that works w/ windows tho
-            
-            const partIndex = (platform === 'win32') ? 1 : 3;
-            this.port = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
-            // aesopEmitter.emit('sb_on');
-            this.aesopEmitter.emit('create_webview', this.port);
-            logger.write(`Found Storybook location via Netstat`, this.fileName, 'locationViaNetstat/grepProcess');
-
-            //do we need to remove 
-            process.send('killNet');
-            process.send('killGrep');
-        })
     }
 
     //MAYBE separate this function?
@@ -122,7 +93,7 @@ class ProcessService {
         this.statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
 
         runSb.stdout.setEncoding('utf8');
-
+        
         let counter = 0;
 
         //Storybook outputs three messages to the terminal as it spins up
