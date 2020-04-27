@@ -37,16 +37,22 @@ class ProcessService {
         logger.write('Attempting to locate via Netstat', this.fileName, 'locationViaNetstat')
         const netStatProcess = child_process.spawnSync(command.cmd, command.args);
         logger.write(`Finished netStat process : ${netStatProcess.stdout}`, this.fileName, 'locationViaNetstat')
-        const grepProcess = child_process.spawnSync('grep', [processPid], {input: netStatProcess.stdout});
+        const grepProcess = child_process.spawnSync('grep', [processPid], {input: netStatProcess.stdout, encoding: 'utf8'});
         logger.write(`Finished grep process : ${grepProcess.stdout.toString()}`, this.fileName, 'locationViaNetstat')
 
-        const parts = grepProcess.stdout.toString().split(/\s/).filter(String);
-        const partIndex = (platform === 'win32') ? 1 : 3;
-        this.port = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
-
+        this.port = this.grabPort(grepProcess)
+        
         this.aesopEmitter.emit('create_webview', this.port);
         logger.write(`Found Storybook location via Netstat`, this.fileName, 'locationViaNetstat/grepProcess');
 
+    }
+
+    
+    private grabPort({stdout}): number{
+        const parts = stdout.split(/\s/).filter(String);
+        const partIndex = (platform === 'win32') ? 1 : 3;
+        const port = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
+        return port
     }
 
     //MAYBE separate this function?
@@ -93,7 +99,7 @@ class ProcessService {
         this.statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
 
         runSb.stdout.setEncoding('utf8');
-        
+
         let counter = 0;
 
         //Storybook outputs three messages to the terminal as it spins up
