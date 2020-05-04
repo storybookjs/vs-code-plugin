@@ -43,7 +43,6 @@ class StorybookChecker {
     nodeProc() {
         // const psLookup = util.promisify(ps.lookup);
         logger.write('Looking for node processes!', this.fileName, 'nodeProc')
-
         let callback = (err, resultList) => {
             if (err) return this.aesopEmitter('error', err);
             logger.write(`Found node processes!`, this.fileName, 'nodeProc');
@@ -71,6 +70,7 @@ class StorybookChecker {
             }
         }
         logger.write('Could not find Storybook Proc!', this.fileName, 'storyBookProc');
+        
         return this.aesopEmitter.emit('start_storybook');
     }
 }
