@@ -1,6 +1,6 @@
 import * as os from 'os';
 
-const commands = {
+const netStatCommandLibrary = {
     linux: {
         cmd: 'netstat',
         args: ['-apntu'],
@@ -15,10 +15,22 @@ const commands = {
     },
 };
 
+const searchCommandLibrary = {
+    linux: {
+        cmd: "grep"
+    },
+    darwin: {
+        cmd: "grep"
+    },
+    win32: {
+        cmd: "FINDSTR"
+    }
+}
+
 
 const platform: NodeJS.Platform = os.platform();
-const command = commands[platform];
-
+const netstatCommand = netStatCommandLibrary[platform];
+const searchCommand = searchCommandLibrary[platform];
 export default {
-    command, platform
+    netstatCommand, searchCommand, platform
 }
