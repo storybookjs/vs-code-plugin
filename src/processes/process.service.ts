@@ -95,7 +95,7 @@ class ProcessService {
         const childProcessArguments = (platform === 'win32') ? ['run', 'storybook'] : retrievedScriptArray;
         const childProcessCommand = (platform === 'win32') ? 'npm.cmd' : 'node';
 
-        const runSb = child_process.spawn(childProcessCommand, childProcessArguments, { cwd: this.rootDir, env: process.env, windowsHide: false, windowsVerbatimArguments: true });
+        const runSb = child_process.spawn(childProcessCommand, childProcessArguments, { cwd: this.rootDir, env: process.env, windowsHide: false, windowsVerbatimArguments: true, stdio: [null, null, 'ignore'] });
 
         this.statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
 
@@ -129,11 +129,11 @@ class ProcessService {
 
         runSb.stdout.on('data', callback)
 
-        runSb.stderr.on('data', (data) => {
-            console.error(`stderr: ${data}`);
-            // logger.write(`This is stderr: ${data.toString()}`, this.fileName, 'startStorybook/runSb')
-            // process.exit(1);
-        })
+        // runSb.stderr.on('data', (data) => {
+        //     console.error(`stderr: ${data}`);
+        //     // logger.write(`This is stderr: ${data.toString()}`, this.fileName, 'startStorybook/runSb')
+        //     // process.exit(1);
+        // })
 
         //make sure the child process is terminated on process exit
         runSb.on('close', (code) => {
