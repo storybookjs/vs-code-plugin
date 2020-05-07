@@ -6,7 +6,6 @@ import * as ps from 'ps-node';
 import { spawn } from 'child_process';
 import * as events from 'events';
 import * as os from 'os';
-import { ipcMain } from 'electron';
 
 export function activate(context: vscode.ExtensionContext) {
 	// let panel : vscode.WebviewPanel | undefined = undefined;
@@ -71,18 +70,6 @@ export function activate(context: vscode.ExtensionContext) {
         retainContextWhenHidden: true
       }
     );
-	
-		ipcMain.on('asynchronous-message', (e, arg) => {
-			console.log('IPC ASYNC');
-			console.log(e, arg);
-			// ipcMain.reply({'hello':'fromIPCMainAysnc'});
-		});
-
-		ipcMain.on('synchronous-message', (e, arg) => {
-			console.log('IPC SYNC');
-			console.log(e, arg);
-		});
-
 
     panel.webview.onDidReceiveMessage((e) => {
       console.log('Webview received:', e);
@@ -138,7 +125,13 @@ export function activate(context: vscode.ExtensionContext) {
               parent.postMessage(JSON.stringify({ iframe: 'sb_iFrame talking to body'}));
             }
           </script>
-        </iframe>
+		</iframe>
+		<script>
+		if (globals) {
+			console.log('Globals is:');
+			console.log(globals);
+		}
+		</script>
       </body>
     </html>`
   }; //close createAesopHelper
@@ -204,7 +197,7 @@ export function activate(context: vscode.ExtensionContext) {
 					command: 'node',
 					psargs: 'ux'
 				}, (err : Error, resultList : any) => {
-          // 'any' type not ideal, but ps utility doesn't play nice with strict NodeJsProcess types
+          			// 'any' type not ideal, but ps utility doesn't play nice with strict NodeJsProcess types
 					if (err){
 						vscode.window.showErrorMessage(`Failed looking for running Node processes. Error: ${err}`);
 						statusText.dispose();

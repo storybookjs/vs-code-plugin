@@ -73,7 +73,6 @@
 		"webpack-cli": "^3.3.10"
 	},
 	"dependencies": {
-		"electron": "^8.2.4",
 		"npm": "^6.13.4",
 		"ps-node": "^0.1.6",
 		"vsce": "^1.71.0"
