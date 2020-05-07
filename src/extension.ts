@@ -6,6 +6,7 @@ import * as ps from 'ps-node';
 import { spawn } from 'child_process';
 import * as events from 'events';
 import * as os from 'os';
+import { ipcMain } from 'electron';
 
 export function activate(context: vscode.ExtensionContext) {
 	// let panel : vscode.WebviewPanel | undefined = undefined;
@@ -70,7 +71,19 @@ export function activate(context: vscode.ExtensionContext) {
         retainContextWhenHidden: true
       }
     );
-    
+	
+		ipcMain.on('asynchronous-message', (e, arg) => {
+			console.log('IPC ASYNC');
+			console.log(e, arg);
+			// ipcMain.reply({'hello':'fromIPCMainAysnc'});
+		});
+
+		ipcMain.on('synchronous-message', (e, arg) => {
+			console.log('IPC SYNC');
+			console.log(e, arg);
+		});
+
+
     panel.webview.onDidReceiveMessage((e) => {
       console.log('Webview received:', e);
       fs.appendFileSync(debugLog, `Webview panel recieved this from ${e.source}/${e.origin}: \n\n ${e} \n\n*** End log. *** \n\n`);
@@ -152,19 +165,19 @@ export function activate(context: vscode.ExtensionContext) {
       dynamicPort = parseInt(parts[partIndex].replace(/[^0-9]/g, ''));
       fs.appendFileSync(debugLog, `\n*** GREP RECEIVED THE FOLLOWING DATA: ***\n${data}\n Parsed data chunks:\n ${parts}\n Derived port is ${dynamicPort}\n\n`);
       netStatProcess.kill();
-    })
+    });
 
     // cascade child process kills to ensure no extant processes
     netStatProcess.stdout.on('close', (code = 1) => {
       console.log(`Netstat killed: ${code}`);
       grepProcess.kill();
-    })
+    });
     
     grepProcess.stdout.on('close', (code = 1) => {
       console.log(`Grep killed: ${code}`);
       fs.appendFileSync(debugLog, `NetStat killed? ${netStatProcess.killed}\n Grep emitting ${dynamicPort} to AesopEmitter`);
       aesopEmitter.emit('sb_on', dynamicPort);
-    })
+    });
   };
 
 	//create disposable to register Aesop Awaken command to subscriptions
@@ -200,138 +213,135 @@ export function activate(context: vscode.ExtensionContext) {
 						//notify the user that Aesop is checking for a running Storybook instances
 						statusText.text = `Reviewing Node processes...`;
 
-            fs.appendFileSync(debugLog, `\nRunning Node processes detailed here:\n`)
+						fs.appendFileSync(debugLog, `\nRunning Node processes detailed here:\n`);
 
-            // if the process lookup was able to find running processes, iterate through to review them
-            // this should be typed as a NodeJS.process, but pslookup returns a standard object; use 'any'
+						// if the process lookup was able to find running processes, iterate through to review them
+						// this should be typed as a NodeJS.process, but pslookup returns a standard object; use 'any'
 						resultList.forEach((nodeProcess : any) => {
-  
-              fs.appendFileSync(debugLog, `PID ${nodeProcess.pid} arguments:\n${nodeProcess.arguments}\n`);
+			
+							fs.appendFileSync(debugLog, `PID ${nodeProcess.pid} arguments:\n${nodeProcess.arguments}\n`);
 
 							// check if any running processes are Storybook processes
 							// @TODO: (stretch feature) check for multiple instances of storybook and reconcile
-              if (nodeProcess.arguments[0].includes('node_modules') && nodeProcess.arguments[0].includes('storybook')) {
-                statusText.text = `Retrieving running Storybook process...`;
+							if (nodeProcess.arguments[0].includes('node_modules') && nodeProcess.arguments[0].includes('storybook')) {
+								statusText.text = `Retrieving running Storybook process...`;
+								// set toggle to true to prevent running another process below
+								foundSb = true;
+								
+								// grab the PID to use in the netstat process
+								const processPid = parseInt(nodeProcess['pid']).toString();
 
-                // set toggle to true to prevent running another process below
-                foundSb = true;
-                
-                // grab the PID to use in the netstat process
-                const processPid = parseInt(nodeProcess['pid']).toString();
-
-                fs.appendFileSync(debugLog, `\n*** FOUND RUNNING STORYBOOK INSTANCE ***\nARGUMENTS: ${nodeProcess.arguments}\nPARSED PID: ${processPid}\n *** LOG CONTINUES *** \n`);
-                retrievePort(processPid);
-						  } //---> close if process.arguments[0] contains storybook			
-					  }) //---> close resultList.forEach()
+								fs.appendFileSync(debugLog, `\n*** FOUND STORYBOOK INSTANCE ***\nARGUMENTS: ${nodeProcess.arguments}\nPARSED PID: ${processPid}\n *** CONT'D *** \n`);
+								retrievePort(processPid);
+							} //---> close if process.arguments[0] contains storybook			
+						}); //---> close resultList.forEach()
 
 
-            // if no processes matched 'Storybook', spin up the Storybook server
-            if (foundSb === false) {
-              fs.appendFileSync(debugLog, `\nDid not find a running Storybook server. Starting one.\n`);
+						// if no processes matched 'Storybook', spin up the Storybook server
+						if (foundSb === false) {
+							fs.appendFileSync(debugLog, `\nDid not find a running Storybook server. Starting one.\n`);
 
-              fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
-                if (err){
-                  vscode.window.showErrorMessage(`Aesop is attempting to read ${rootDir}. Is there a package.json file here?`);
-                  statusText.dispose();
-                }	else {
-                  statusText.text = `Checking package.json...`;
+							fs.readFile(path.join(rootDir, 'package.json'), (err, data) => {
+								if (err){
+									vscode.window.showErrorMessage(`Aesop is attempting to read ${rootDir}. Is there a package.json file here?`);
+									statusText.dispose();
+								} else {
+									statusText.text = `Checking package.json...`;
 
-                  // enter the package.JSON file and retrieve its contents as an object
-                  let packageJSON = JSON.parse(data.toString());
+									// enter the package.JSON file and retrieve its contents as an object
+									let packageJSON = JSON.parse(data.toString());
 
-                  // retrieve the storybook script with any additional flags (e.g. ports, etc.)
-                  let storybookScript = packageJSON.scripts.storybook;
-                    
-                  // split the arguments into an arguments array for use in the child process
-                  let retrievedScriptArray = storybookScript.split(' ');
+									// retrieve the storybook script with any additional flags (e.g. ports, etc.)
+									let storybookScript = packageJSON.scripts.storybook;
+										
+									// split the arguments into an arguments array for use in the child process
+									let retrievedScriptArray = storybookScript.split(' ');
 
-                  // check platform, change process command accordingly (older Windows systems support)
-                  // @TODO if script already includes --ci, no need to add it
-                  let platform = os.platform();
-                  const sbCLI = './node_modules/.bin/start-storybook';
-                  const sbStartIndex = retrievedScriptArray.indexOf('start-storybook');
-                  retrievedScriptArray[sbStartIndex] = sbCLI;
-                  retrievedScriptArray.push('--ci');
+									// check platform, change process command accordingly (older Windows systems support)
+									// @TODO if script already includes --ci, no need to add it
+									let platform = os.platform();
+									const sbCLI = './node_modules/.bin/start-storybook';
+									const sbStartIndex = retrievedScriptArray.indexOf('start-storybook');
+									retrievedScriptArray[sbStartIndex] = sbCLI;
+									retrievedScriptArray.push('--ci');
 
-                  fs.appendFileSync(debugLog, `\nRetrieved package.json script: ${retrievedScriptArray}\n`);
+									fs.appendFileSync(debugLog, `\nRetrieved package.json script: ${retrievedScriptArray}\n`);
 
-                  // now launch Storybook as a child process
-                  const childProcessArguments = (platform === 'win32') ? ['run', 'storybook'] : retrievedScriptArray;
-                  const childProcessCommand = (platform === 'win32') ? 'npm.cmd' : 'node';
-                  
-                  statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
-                  
-                  fs.appendFileSync(debugLog, `Running storybook with command:\n ${childProcessCommand}\n and arguments: ${childProcessArguments}\n`);
+									// now launch Storybook as a child process
+									const childProcessArguments = (platform === 'win32') ? ['run', 'storybook'] : retrievedScriptArray;
+									const childProcessCommand = (platform === 'win32') ? 'npm.cmd' : 'node';
+									
+									statusText.text = `Done looking. Aesop will now launch Storybook in the background.`;
+									
+									fs.appendFileSync(debugLog, `Running storybook with command:\n ${childProcessCommand}\n and arguments: ${childProcessArguments}\n`);
 
-                  const runSb = spawn(childProcessCommand, childProcessArguments, {
-                    cwd: rootDir,
-                    detached: true,
-                    env: process.env,
-                    windowsHide: false,
-                    windowsVerbatimArguments: true 
-                  });
+									const runSb = spawn(childProcessCommand, childProcessArguments, {
+										cwd: rootDir,
+										detached: true,
+										env: process.env,
+										windowsHide: false,
+										windowsVerbatimArguments: true 
+									});
 
-                  // runSb.stdout.setEncoding('utf8');
-                  // runSb.unref();
-      
-                  let counter = 0;
+									// runSb.stdout.setEncoding('utf8');
+									// runSb.unref();
+						
+									let counter = 0;
 
-                  // runSb.stdout.pipe(process.stdout, {end: false});
-                  // process.stdin.resume();
-                  // process.stdin.pipe(runSb.stdin, {end: false});
+									// runSb.stdout.pipe(process.stdout, {end: false});
+									// process.stdin.resume();
+									// process.stdin.pipe(runSb.stdin, {end: false});
 
-                  // process.stdout.on('data', (data) => {
-                  //   fs.appendFileSync(debugLog, `Process received ${data}\n.\n.***End log***\n.\n.`);
-                  // })
+									// process.stdout.on('data', (data) => {
+									//   fs.appendFileSync(debugLog, `Process received ${data}\n.\n.***End log***\n.\n.`);
+									// })
 
-                  // Storybook outputs three messages to the terminal as it spins up
-                  // grab the port from the last message to listen in on the process
-                  runSb.stdout.on('data', (data) => {
-                    
-                    fs.appendFileSync(debugLog, `@runSb.stdout.on('data'), Counter is ${counter}. Data is ${data}\n.\n.***End log***\n.\n.`);
+									// Storybook outputs three messages to the terminal as it spins up
+									// grab the port from the last message to listen in on the process
+									runSb.stdout.on('data', (data) => {
+										
+										fs.appendFileSync(debugLog, `@runSb.stdout.on('data'), Counter is ${counter}. Data is ${data}\n.\n.***End log***\n.\n.`);
+										vscode.window.showInformationMessage(data);
+										let str = data.toString().split(" ");
+										counter +=1;
 
-                    vscode.window.showInformationMessage(data);
+										if (counter >= 2) {
+											for (let i = 100; i < str.length; i += 1) {
 
-                    let str = data.toString().split(" ");
-                    counter +=1;
+												/* Aesop debug logging */
+												fs.appendFileSync(debugLog, `@runSb.stdout.on('data') FOR LOOP, counter is ${counter} \n\n***End log***\n\n`);
+												
+												if (str[i].includes('localhost')) {
+													/* Aesop debug logging */
+													fs.appendFileSync(debugLog, `@runSb.stdout.on('data') - sSTR[I] IS: ${str[i]}`);
+													let foundPort = parseInt(str[i].match(/[^0-9]/g));
+													fs.appendFileSync(debugLog, `@runSb.stdout.on('data') - str[i] includes, counter is ${counter} with found port: ${foundPort}`);
+							
+													aesopEmitter.emit('sb_on', foundPort);
+												}
+											}
+										}
+									});
 
-                    if (counter >= 2) {
-                      for (let i = 100; i < str.length; i += 1) {
+									/* THIS LOGIC IS FLAWED; 'RUN STORYBOOK' COMMAND HAS A SUB-PROCESS */
+									runSb.on('close', () => {
+										fs.appendFileSync(debugLog, `Storybook process ended.`);
+										console.log('Storybook process ended.');
+										retrievePort(runSb.pid);
+									});
 
-                        /* Aesop debug logging */
-                        fs.appendFileSync(debugLog, `@runSb.stdout.on('data') FOR LOOP, counter is ${counter} \n\n***End log***\n\n`);
-                        
-                        if (str[i].includes('localhost')) {
-                          /* Aesop debug logging */
-                          fs.appendFileSync(debugLog, `@runSb.stdout.on('data') - sSTR[I] IS: ${str[i]}`);
-                          let foundPort = parseInt(str[i].match(/[^0-9]/g));
-                          fs.appendFileSync(debugLog, `@runSb.stdout.on('data') - str[i] includes, counter is ${counter} with found port: ${foundPort}`);
-  
-                          aesopEmitter.emit('sb_on', foundPort);
-                        }
-                      }
-                    }
-                  });
+									runSb.on('error', (err) => {
+										fs.appendFileSync(debugLog, `Error starting Storybook: ${err}`);
+										process.exit(1);
+									});
 
-                  /* THIS LOGIC IS FLAWED; 'RUN STORYBOOK' COMMAND HAS A SUB-PROCESS */
-                  runSb.on('close', () => {
-                    fs.appendFileSync(debugLog, `Storybook process ended.`);
-                    console.log('Storybook process ended.');
-                    retrievePort(runSb.pid);
-                  });
-
-                  runSb.on('error', (err) => {
-                    fs.appendFileSync(debugLog, `Error starting Storybook: ${err}`);
-                    process.exit(1);
-                  });
-
-                  //make sure the child process is terminated on process exit
-                  runSb.on('exit', (code) => {
-                    console.log(`Storybook child process exited with code ${code}`);
-                  });
-                } // close fs.readFile(package.json) else statement
-              }) //close fs.readFile(package.json)
-            } //close spin up server if no found process matches
+									//make sure the child process is terminated on process exit
+									runSb.on('exit', (code) => {
+										console.log(`Storybook child process exited with code ${code}`);
+									});
+								} // close fs.readFile(package.json) else statement
+							}) //close fs.readFile(package.json)
+						} //close spin up server if no found process matches
 					}; //CLOSE ps.lookup() else statement
 				}); //close ps.lookup()
 			} //close fs.access() else statement
