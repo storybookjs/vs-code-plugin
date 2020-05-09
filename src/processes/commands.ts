@@ -7,7 +7,7 @@ const netStatCommandLibrary = {
     },
     darwin: {
         cmd: 'netstat',
-        args: ['-v', '-n', '-p', 'tcp'],
+        args: ['-a', '-v', '-n', '-p', 'tcp'],
     },
     win32: {
         cmd: 'netstat.exe',
